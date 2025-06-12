@@ -22,15 +22,19 @@ const upload = multer({
   storage: multerS3({
     s3,
     bucket: bucketName,
+    // acl: 'public-read',
+    contentType: multerS3.AUTO_CONTENT_TYPE, // ✅ Fix: sets correct Content-Type (e.g. image/png)
     metadata: (req, file, cb) => {
-      console.log(`📤 Starting upload for: ${file.originalname}`);
+      // console.log(`📤 Starting upload for: ${file.originalname}`);
       cb(null, { fieldName: file.fieldname });
     },
     key: (req, file, cb) => {
       const extension = file.originalname.split('.').pop(); // get extension like "jpg"
       const fileName = `${uuidv4()}.${extension}`; // hash-based name
-      console.log(`🔑 Generated UUID key: ${fileName}`);
-      cb(null, fileName);
+      // console.log(`🔑 Generated UUID key: ${fileName}`);
+      const s3Key = `uploaded/${fileName}`; // ✅ save in "uploaded/" folder
+      console.log(`🔑 Generated S3 Key: ${s3Key}`);
+      cb(null, s3Key);
     },
   }),
   limits: {

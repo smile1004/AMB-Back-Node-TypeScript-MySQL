@@ -429,11 +429,11 @@ const createJob = async (req: any, res: any, next: any) => {
 
     // Save job thumbnail image (posting_category = 11)
     if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
-
       const file = req.files.thumbnail[0];
+      const imageName = file.key.replace(/^uploaded\//, '');
       await ImagePath.create({
-        image_name: file.key,
-        entity_path: `/uploads/${file.key}`,
+        image_name: imageName,
+        entity_path: `/uploads/${imageName}`,
         posting_category: 11,
         parent_id: job.id,
       });
@@ -516,10 +516,12 @@ const createJob = async (req: any, res: any, next: any) => {
         else if (typeof (req.body.staffImages) == "object")
           existingFilename = req.body?.staffImages?.[stringindex];
 
+
         if (staff.type == "object" && uploadedImage != undefined) {
+          const imageName = uploadedImage.key.replace(/^uploaded\//, '');
           await ImagePath.create({
-            image_name: uploadedImage.key,
-            entity_path: `/uploads/${uploadedImage.key}`,
+            image_name: imageName,
+            entity_path: `/uploads/${imageName}`,
             posting_category: 14,
             parent_id: newStaff.id,
           });
@@ -553,9 +555,10 @@ const createJob = async (req: any, res: any, next: any) => {
           existingFilename = req.body?.introImages?.[stringindex];
 
         if (intro.type == "object" && uploadedImage != undefined) {
+          const imageName = uploadedImage.key.replace(/^uploaded\//, '');
           await ImagePath.create({
-            image_name: uploadedImage.key,
-            entity_path: `/uploads/${uploadedImage.key}`,
+            image_name: imageName,
+            entity_path: `/uploads/${imageName}`,
             posting_category: 13,
             parent_id: newintro.id,
           });
@@ -735,9 +738,10 @@ const updateJob = async (req: any, res: any, next: any) => {
     if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
 
       const file = req.files.thumbnail[0];
+      const imageName = file.key.replace(/^uploaded\//, '');
       await ImagePath.create({
-        image_name: file.filename,
-        entity_path: `/uploads/${file.filename}`,
+        image_name: imageName,
+        entity_path: `/uploads/${imageName}`,
         posting_category: 11,
         parent_id: job.id,
       });
@@ -770,9 +774,10 @@ const updateJob = async (req: any, res: any, next: any) => {
         existingFilename = req.body?.staffImages?.[stringindex];
 
       if (staff.type == "object" && uploadedImage != undefined) {
+        const imageName = uploadedImage.key.replace(/^uploaded\//, '');
         await ImagePath.create({
-          image_name: uploadedImage.filename,
-          entity_path: `/uploads/${uploadedImage.filename}`,
+          image_name: imageName,
+          entity_path: `/uploads/${uploadedImage.imageName}`,
           posting_category: 14,
           parent_id: newStaff.id,
         });
@@ -804,9 +809,10 @@ const updateJob = async (req: any, res: any, next: any) => {
         existingFilename = req.body?.introImages?.[stringindex];
 
       if (intro.type == "object" && uploadedImage != undefined) {
+        const imageName = uploadedImage.key.replace(/^uploaded\//, '');
         await ImagePath.create({
-          image_name: uploadedImage.filename,
-          entity_path: `/uploads/${uploadedImage.filename}`,
+          image_name: imageName,
+          entity_path: `/uploads/${imageName}`,
           posting_category: 13,
           parent_id: newintro.id,
         });
