@@ -243,7 +243,7 @@ const loginAdmin = async (req: any, res: any, next: any) => {
 const unifiedLogin = async (req: any, res: any, next: any) => {
   try {
     const { email, password } = req.body;
-    
+
     let user = null;
     let role = '';
 
@@ -339,6 +339,100 @@ const getCurrentUser = async (req: any, res: any, next: any) => {
     next(error);
   }
 };
+
+
+const updateJobSeeker = async (req: any, res: any, next: any) => {
+  try {
+    const jobSeekerId = req.user.id; // assuming `req.user` is set via auth middleware
+    const { password, email, ...otherData } = req.body;
+
+    // Check if user exists
+    const jobSeeker = await JobSeeker.findByPk(jobSeekerId);
+    if (!jobSeeker) {
+      throw new NotFoundError('Job Seeker not found');
+    }
+
+    // Prevent email update if already taken
+    if (email && email !== jobSeeker.email) {
+      const emailUsed =
+        await JobSeeker.findOne({ where: { email } }) ||
+        await Employer.findOne({ where: { email } }) ||
+        await Admin.findOne({ where: { email } });
+
+      if (emailUsed) {
+        throw new BadRequestError('Email is already registered');
+      }
+
+      jobSeeker.email = email;
+    }
+
+    // Update password if provided
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      jobSeeker.password = await bcrypt.hash(password, salt);
+    }
+
+    // Update other fields
+    Object.assign(jobSeeker, otherData);
+    await jobSeeker.save();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user: jobSeeker.toJSON(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateEmployer = async (req: any, res: any, next: any) => {
+  try {
+    const employerId = req.user.id;
+    const { password, email, ...otherData } = req.body;
+
+    // Check if employer exists
+    const employer = await Employer.findByPk(employerId);
+    if (!employer) {
+      throw new NotFoundError('Employer not found');
+    }
+
+    // Prevent email update if already taken
+    if (email && email !== employer.email) {
+      const emailUsed =
+        await JobSeeker.findOne({ where: { email } }) ||
+        await Employer.findOne({ where: { email } }) ||
+        await Admin.findOne({ where: { email } });
+
+      if (emailUsed) {
+        throw new BadRequestError('Email is already registered');
+      }
+
+      employer.email = email;
+    }
+
+    // Update password if provided
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      employer.password = await bcrypt.hash(password, salt);
+    }
+
+    // Update other fields
+    Object.assign(employer, otherData);
+    await employer.save();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user: employer.toJSON(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 /**
  * Change password
@@ -520,6 +614,8 @@ export default {
   loginAdmin,
   unifiedLogin,
   getCurrentUser,
+  updateJobSeeker,
+  updateEmployer,
   changePassword,
   requestPasswordReset,
   resetPassword

@@ -90,8 +90,7 @@ const isJobSeeker = async (req: any, res: any, next: any) => {
     if (!req.user) {
       throw new UnauthorizedError("Not authenticated");
     }
-
-    if (req.user.role !== "jobseeker") {
+    if (req.user.role !== "jobSeeker") {
       throw new ForbiddenError("Job seeker access required");
     }
 
