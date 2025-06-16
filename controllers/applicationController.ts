@@ -90,8 +90,56 @@ const applyForJob = async (req: any, res: any, next: any) => {
 
 const getAllApplications = async (req: any, res: any, next: any) => {
   try {
+
+    const {
+      page = 1,
+      limit = 10,
+      searchTerm,
+      job_seeker_id,
+      employer_id
+    } = req.query;
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+    const whereCondition = {};
+
+    // Search Term
+    if (searchTerm) {
+      whereCondition[Op.or] = [
+        { job_title: { [Op.like]: `%${searchTerm}%` } },
+      ];
+    }
+
+    if (job_seeker_id) {
+      whereCondition[Op.or] = [
+        { job_seeker_id: job_seeker_id },
+      ];
+    }
+
+    if (employer_id) {
+      // Get employer's job IDs
+      const jobs = await JobInfo.findAll({
+        attributes: ["id"],
+        where: { employer_id: employer_id },
+        raw: true, // Ensures only plain data objects are returned
+      });
+
+      // Extract job IDs from results
+      const jobIds = jobs.map((job: any) => job.id);
+
+
+      if (jobIds.length === 0) {
+        return res.status(200).json({
+          success: true,
+          data: []
+        });
+      }
+      whereCondition.job_info_id = { [Op.in]: jobIds };
+    }
     // Get all applications with job info
-    const applications = await ApplicationHistory.findAll({
+    const { count, rows: applications } = await ApplicationHistory.findAndCountAll({
+      where: whereCondition,
+      limit: parseInt(limit, 10),
+      offset: offset,
       include: [
         {
           model: JobSeeker,
@@ -124,10 +172,21 @@ const getAllApplications = async (req: any, res: any, next: any) => {
       order: [['created', 'DESC']]
     });
 
+    // Calculate total pages
+    const totalPages = Math.ceil(count / limit);
+
     // Return response
     res.status(200).json({
       success: true,
-      data: applications
+      data: {
+        applications,
+        pagination: {
+          total: count,
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
+          totalPages,
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -216,12 +275,18 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
         {
           model: JobInfo,
           as: 'jobInfo',
-          attributes: ['id', 'job_title']
+          include: [
+            {
+              model: Employer,
+              as: 'employer',
+              attributes: ['id', 'clinic_name']
+            }
+          ]
         },
         {
           model: JobSeeker,
           as: 'jobSeeker',
-          attributes: ['id', 'name', 'email']
+          // attributes: ['id', 'name', 'email']
         },
         {
           model: Chat,
@@ -238,7 +303,7 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
       ],
       order: [['created', 'DESC']]
     });
-
+    console.log("AAA")
     // Return response
     res.status(200).json({
       success: true,
