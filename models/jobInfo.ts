@@ -206,6 +206,11 @@ export default (sequelize: any, DataTypes: any) => {
       as: "chats",
     });
 
+    JobInfo.hasOne(models.JobAnalytic, {
+      foreignKey: "job_info_id",
+      as: "job_analytics",
+    });
+
     // JobInfo.hasMany(models.JobSeekerJobMemo, {
     //   foreignKey: 'job_info_id',
     //   as: 'jobSeekerMemos'

@@ -1,6 +1,7 @@
-import { Op, Sequelize, where } from "sequelize";
+import { Op, Sequelize, where, literal } from "sequelize";
 import db from "../models";
 const {
+  ApplicationHistory,
   JobInfo,
   JobSeeker,
   DesiredCondition,
@@ -234,37 +235,62 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     });
 
     // Update analytics asynchronously (non-blocking)
-    try {
-      const today = new Date();
-      const year = today.getFullYear().toString();
-      const month = (today.getMonth() + 1).toString().padStart(2, "0");
-      const day = today.getDate().toString().padStart(2, "0");
+    // try {
+    //   const today = new Date();
+    //   const year = today.getFullYear().toString();
+    //   const month = (today.getMonth() + 1).toString().padStart(2, "0");
+    //   const day = today.getDate().toString().padStart(2, "0");
 
-      // For each job viewed in the list, increment search count
-      jobs.forEach(async (job: any) => {
-        await JobAnalytic.findOrCreate({
-          where: {
-            job_info_id: job.id,
-            year,
-            month,
-            day,
-          },
-          defaults: {
-            job_info_id: job.id,
-            year,
-            month,
-            day,
-            search_count: 1,
-            recruits_count: 0,
-          },
-          // @ts-expect-error TS(7031): Binding element 'analytics' implicitly has an 'any... Remove this comment to see the full error message
-        }).then(([analytics, created]) => {
-          if (!created) {
-            analytics.search_count += 1;
-            return analytics.save();
-          }
+    //   // For each job viewed in the list, increment search count
+    //   jobs.forEach(async (job: any) => {
+    //     await JobAnalytic.findOrCreate({
+    //       where: {
+    //         job_info_id: job.id,
+    //         year,
+    //         month,
+    //         day,
+    //       },
+    //       defaults: {
+    //         job_info_id: job.id,
+    //         year,
+    //         month,
+    //         day,
+    //         search_count: 1,
+    //         recruits_count: 0,
+    //       },
+    //       // @ts-expect-error TS(7031): Binding element 'analytics' implicitly has an 'any... Remove this comment to see the full error message
+    //     }).then(([analytics, created]) => {
+    //       if (!created) {
+    //         analytics.search_count += 1;
+    //         return analytics.save();
+    //       }
+    //     });
+    //   });
+    // } catch (analyticsError) {
+    //   logger.error("Error updating job analytics:", analyticsError);
+    //   // Continue response flow, don't fail if analytics fails
+    // }
+
+    try {
+      for (const job of jobs) {
+        const existing = await JobAnalytic.findOne({
+          where: { job_info_id: job.id },
         });
-      });
+
+        if (existing) {
+          // Record exists – increment search_count
+          existing.search_count += 1;
+          await existing.save();
+        } else {
+          // No record – create new with search_count = 1
+          await JobAnalytic.create({
+            job_info_id: job.id,
+            search_count: 1,
+            recruits_count: 0, // Optional default
+          });
+        }
+      }
+
     } catch (analyticsError) {
       logger.error("Error updating job analytics:", analyticsError);
       // Continue response flow, don't fail if analytics fails
@@ -374,35 +400,25 @@ const getJobById = async (req: any, res: any, next: any) => {
       data: job,
     });
 
+
     // Update analytics asynchronously (non-blocking)
     try {
-      const today = new Date();
-      const year = today.getFullYear().toString();
-      const month = (today.getMonth() + 1).toString().padStart(2, "0");
-      const day = today.getDate().toString().padStart(2, "0");
-
-      await JobAnalytic.findOrCreate({
-        where: {
-          job_info_id: job.id,
-          year,
-          month,
-          day,
-        },
-        defaults: {
-          job_info_id: job.id,
-          year,
-          month,
-          day,
-          search_count: 0,
-          recruits_count: 1,
-        },
-        // @ts-expect-error TS(7031): Binding element 'analytics' implicitly has an 'any... Remove this comment to see the full error message
-      }).then(([analytics, created]) => {
-        if (!created) {
-          analytics.recruits_count += 1;
-          return analytics.save();
-        }
+      const existing = await JobAnalytic.findOne({
+        where: { job_info_id: job.id },
       });
+
+      if (existing) {
+        // Record exists – increment search_count
+        existing.recruits_count += 1;
+        await existing.save();
+      } else {
+        // No record – create new with search_count = 1
+        await JobAnalytic.create({
+          job_info_id: job.id,
+          search_count: 0,
+          recruits_count: 1, // Optional default
+        });
+      }
     } catch (analyticsError) {
       logger.error("Error updating job analytics:", analyticsError);
       // Continue response flow, don't fail if analytics fails
@@ -1013,66 +1029,164 @@ const getFeaturedJobs = async (req: any, res: any, next: any) => {
  * Get job recommendations for a job seeker
  * @route GET /api/jobs/recommendations
  */
+// const getRecommendedJobs = async (req: any, res: any, next: any) => {
+//   try {
+//     const { id: jobSeekerId } = req.user;
+//     const { limit = 10 } = req.query;
+
+//     // Get job seeker with relations to find preferences
+//     const jobSeeker = await JobSeeker.findByPk(jobSeekerId, {
+//       include: [
+//         {
+//           model: EmploymentType,
+//           as: "employmentTypes",
+//           through: { attributes: [] },
+//         },
+//         {
+//           model: DesiredCondition,
+//           as: "desiredConditions",
+//           through: { attributes: [] },
+//         },
+//       ],
+//     });
+
+//     if (!jobSeeker) {
+//       throw new NotFoundError("Job seeker not found");
+//     }
+
+//     // Extract preferences
+//     const employmentTypeIds = jobSeeker.employmentTypes.map(
+//       (type: any) => type.id
+//     );
+//     const desiredConditionIds = jobSeeker.desiredConditions.map(
+//       (condition: any) => condition.id
+//     );
+//     const preferredPrefectures = jobSeeker.prefectures;
+
+//     // Build recommendation query
+//     const whereCondition = {
+//       deleted: null,
+//       public_status: 1,
+//     };
+
+//     // Add employment type filter if available
+//     if (employmentTypeIds.length > 0) {
+//       // @ts-expect-error TS(2339): Property 'employment_type_id' does not exist on ty... Remove this comment to see the full error message
+//       whereCondition.employment_type_id = {
+//         [Op.in]: employmentTypeIds,
+//       };
+//     }
+
+//     // Build include options
+//     const includeOptions = [
+//       {
+//         model: Employer,
+//         as: "employer",
+//         attributes: [
+//           "id",
+//           "clinic_name",
+//           "prefectures",
+//           "city",
+//           "closest_station",
+//         ],
+//         where: {},
+//       },
+//       {
+//         model: EmploymentType,
+//         as: "employmentType",
+//       },
+//       {
+//         model: Feature,
+//         as: "features",
+//         through: { attributes: [] },
+//       },
+//       // {
+//       //   model: ImagePath,
+//       //   as: "images",
+//       //   limit: 1,
+//       // },
+//     ];
+
+//     // // Add prefectures filter to employer if available
+//     if (preferredPrefectures) {
+//       // @ts-expect-error TS(2532): Object is possibly 'undefined'.
+//       includeOptions[0].where.prefectures = preferredPrefectures;
+//     }
+
+//     // // Add feature filter for desired conditions if available
+//     // if (desiredConditionIds.length > 0) {
+//     //   const featuresInclude = includeOptions.find(
+//     //     (inc) => inc.as === "features"
+//     //   );
+//     //   // @ts-expect-error TS(2532): Object is possibly 'undefined'.
+//     //   featuresInclude.where = {
+//     //     id: {
+//     //       [Op.in]: await Feature.findAll({
+//     //         attributes: ["id"],
+//     //         where: {
+//     //           name: {
+//     //             [Op.in]: await DesiredCondition.findAll({
+//     //               attributes: ["name"],
+//     //               where: { id: { [Op.in]: desiredConditionIds } },
+//     //             }).map((dc: any) => dc.name),
+//     //           },
+//     //         },
+//     //       }).map((f: any) => f.id),
+//     //     },
+//     //   };
+//     //   // @ts-expect-error TS(2532): Object is possibly 'undefined'.
+//     //   featuresInclude.required = false;
+//     // }
+
+//     // Get recommended jobs
+//     const jobs = await JobInfo.findAll({
+//       where: whereCondition,
+//       include: includeOptions,
+//       limit: parseInt(limit, 10),
+//       order: [["created", "DESC"]],
+//     });
+
+//     // Return response
+//     res.status(200).json({
+//       success: true,
+//       data: jobs,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 const getRecommendedJobs = async (req: any, res: any, next: any) => {
   try {
     const { id: jobSeekerId } = req.user;
     const { limit = 10 } = req.query;
 
-    // Get job seeker with relations to find preferences
     const jobSeeker = await JobSeeker.findByPk(jobSeekerId, {
       include: [
-        {
-          model: EmploymentType,
-          as: "employmentTypes",
-          through: { attributes: [] },
-        },
-        {
-          model: DesiredCondition,
-          as: "desiredConditions",
-          through: { attributes: [] },
-        },
+        { model: EmploymentType, as: "employmentTypes", through: { attributes: [] } },
+        { model: DesiredCondition, as: "desiredConditions", through: { attributes: [] } },
       ],
     });
 
-    if (!jobSeeker) {
-      throw new NotFoundError("Job seeker not found");
-    }
+    if (!jobSeeker) throw new NotFoundError("Job seeker not found");
 
-    // Extract preferences
-    const employmentTypeIds = jobSeeker.employmentTypes.map(
-      (type: any) => type.id
-    );
-    const desiredConditionIds = jobSeeker.desiredConditions.map(
-      (condition: any) => condition.id
-    );
+    const employmentTypeIds = jobSeeker.employmentTypes.map((t: any) => t.id);
     const preferredPrefectures = jobSeeker.prefectures;
 
-    // Build recommendation query
-    const whereCondition = {
+    const whereCondition: any = {
       deleted: null,
       public_status: 1,
     };
 
-    // Add employment type filter if available
-    if (employmentTypeIds.length > 0) {
-      // @ts-expect-error TS(2339): Property 'employment_type_id' does not exist on ty... Remove this comment to see the full error message
-      whereCondition.employment_type_id = {
-        [Op.in]: employmentTypeIds,
-      };
-    }
+    // if (employmentTypeIds.length > 0) {
+    //   whereCondition.employment_type_id = { [Op.in]: employmentTypeIds };
+    // }
 
-    // Build include options
-    const includeOptions = [
+    const includeOptions: any[] = [
       {
         model: Employer,
         as: "employer",
-        attributes: [
-          "id",
-          "clinic_name",
-          "prefectures",
-          "city",
-          "closest_station",
-        ],
+        attributes: ["id", "clinic_name", "prefectures", "city", "closest_station"],
         where: {},
       },
       {
@@ -1085,60 +1199,50 @@ const getRecommendedJobs = async (req: any, res: any, next: any) => {
         through: { attributes: [] },
       },
       {
-        model: ImagePath,
-        as: "images",
-        limit: 1,
+        model: JobAnalytic,
+        as: "job_analytics",
+        attributes: [],
+      },
+      {
+        model: ApplicationHistory,
+        as: "applications",
+        attributes: [],
       },
     ];
 
-    // Add prefectures filter to employer if available
     if (preferredPrefectures) {
-      // @ts-expect-error TS(2532): Object is possibly 'undefined'.
       includeOptions[0].where.prefectures = preferredPrefectures;
     }
 
-    // Add feature filter for desired conditions if available
-    if (desiredConditionIds.length > 0) {
-      const featuresInclude = includeOptions.find(
-        (inc) => inc.as === "features"
-      );
-      // @ts-expect-error TS(2532): Object is possibly 'undefined'.
-      featuresInclude.where = {
-        id: {
-          [Op.in]: await Feature.findAll({
-            attributes: ["id"],
-            where: {
-              name: {
-                [Op.in]: await DesiredCondition.findAll({
-                  attributes: ["name"],
-                  where: { id: { [Op.in]: desiredConditionIds } },
-                }).map((dc: any) => dc.name),
-              },
-            },
-          }).map((f: any) => f.id),
-        },
-      };
-      // @ts-expect-error TS(2532): Object is possibly 'undefined'.
-      featuresInclude.required = false;
-    }
-
-    // Get recommended jobs
     const jobs = await JobInfo.findAll({
       where: whereCondition,
       include: includeOptions,
+      attributes: {
+        include: [
+          [Sequelize.fn("COUNT", Sequelize.col("applications.id")), "application_count"],
+          [literal(`
+            COALESCE(job_analytics.search_count, 0) * 0.3 +
+            COALESCE(job_analytics.recruits_count, 0) * 0.3 +
+            COUNT(applications.id) * 4
+          `), "recommend_score"]
+        ],
+      },
+      group: ["JobInfo.id", "employer.id", "employmentType.id", "job_analytics.id"],
+      order: [[literal("recommend_score"), "DESC"]],
       limit: parseInt(limit, 10),
-      order: [["created", "DESC"]],
+      subQuery: false,
     });
 
-    // Return response
     res.status(200).json({
       success: true,
       data: jobs,
     });
+
   } catch (error) {
     next(error);
   }
 };
+
 
 const addFavouriteJob = async (req: any, res: any, next: any) => {
   try {
