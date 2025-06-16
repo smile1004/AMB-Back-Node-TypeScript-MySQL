@@ -214,7 +214,46 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       limit: parseInt(limit, 10),
       offset: offset,
       order: [[sortBy, sortOrder]],
-      // ...(havingCondition && { having: havingCondition }), // add only if feature filter is applied
+      attributes: {
+        include: [
+          // ✅ HIGHLIGHTED: search_count
+          [
+            Sequelize.literal(`(
+          SELECT COALESCE(SUM(search_count), 0)
+          FROM job_analytics AS ja
+          WHERE ja.job_info_id = JobInfo.id
+        )`),
+            'search_count',
+          ],
+          // ✅ HIGHLIGHTED: recruits_count
+          [
+            Sequelize.literal(`(
+          SELECT COALESCE(SUM(recruits_count), 0)
+          FROM job_analytics AS ja
+          WHERE ja.job_info_id = JobInfo.id
+        )`),
+            'recruits_count',
+          ],
+          // ✅ HIGHLIGHTED: application_count
+          [
+            Sequelize.literal(`(
+          SELECT COUNT(*)
+          FROM application_histories AS app
+          WHERE app.job_info_id = JobInfo.id
+        )`),
+            'application_count',
+          ],
+          // ✅ HIGHLIGHTED: favourite_count
+          [
+            Sequelize.literal(`(
+          SELECT COUNT(*)
+          FROM favorite_jobs AS fav
+          WHERE fav.job_info_id = JobInfo.id
+        )`),
+            'favourite_count',
+          ],
+        ]
+      }
     });
 
     // Calculate total pages
