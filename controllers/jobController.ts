@@ -1178,59 +1178,75 @@ const getRecommendedJobs = async (req: any, res: any, next: any) => {
       public_status: 1,
     };
 
+    // Uncomment if you want to filter by employment types
     // if (employmentTypeIds.length > 0) {
     //   whereCondition.employment_type_id = { [Op.in]: employmentTypeIds };
     // }
 
-    const includeOptions: any[] = [
-      {
-        model: Employer,
-        as: "employer",
-        attributes: ["id", "clinic_name", "prefectures", "city", "closest_station"],
-        where: {},
-      },
-      {
-        model: EmploymentType,
-        as: "employmentType",
-      },
-      {
-        model: Feature,
-        as: "features",
-        through: { attributes: [] },
-      },
-      {
-        model: JobAnalytic,
-        as: "job_analytics",
-        attributes: [],
-      },
-      {
-        model: ApplicationHistory,
-        as: "applications",
-        attributes: [],
-      },
-    ];
-
-    if (preferredPrefectures) {
-      includeOptions[0].where.prefectures = preferredPrefectures;
-    }
-
     const jobs = await JobInfo.findAll({
       where: whereCondition,
-      include: includeOptions,
+      include: [
+        {
+          model: Employer,
+          as: "employer",
+          attributes: ["id", "clinic_name", "prefectures", "city", "closest_station"],
+          // *** Filter by prefecture if available ***
+          where: preferredPrefectures ? { prefectures: preferredPrefectures } : undefined,
+        },
+        {
+          model: EmploymentType,
+          as: "employmentType",
+        },
+        {
+          model: Feature,
+          as: "features",
+          through: { attributes: [] },
+        },
+        {
+          model: JobAnalytic,
+          as: "job_analytics",  // *** Correct alias here ***
+          attributes: [],   // We will include its fields explicitly below
+        },
+        {
+          model: ApplicationHistory,
+          as: "applications",
+        },
+      ],
       attributes: {
         include: [
-          [Sequelize.fn("COUNT", Sequelize.col("applications.id")), "application_count"],
-          [literal(`
-            COALESCE(job_analytics.search_count, 0) * 0.3 +
-            COALESCE(job_analytics.recruits_count, 0) * 0.3 +
-            COUNT(applications.id) * 4
-          `), "recommend_score"]
+          [Sequelize.col("job_analytics.search_count"), "search_count"],
+          [Sequelize.col("job_analytics.recruits_count"), "recruits_count"],
+
+          // <-- UPDATED: Use correlated subquery to get accurate application_count -->
+          [
+            Sequelize.literal(`(
+        SELECT COUNT(*)
+        FROM application_histories AS ah
+        WHERE ah.job_info_id = JobInfo.id
+      )`),
+            "application_count"
+          ],
+
+          // Updated recommend_score using above count subquery result
+          [
+            Sequelize.literal(`
+        COALESCE(job_analytics.search_count, 0) * 0.3 +
+        COALESCE(job_analytics.recruits_count, 0) * 0.3 +
+        (
+          SELECT COUNT(*)
+          FROM application_histories AS ah
+          WHERE ah.job_info_id = JobInfo.id
+        ) * 4
+      `),
+            "recommend_score"
+          ],
         ],
       },
+      // *** Group by all non-aggregated columns ***
       group: ["JobInfo.id", "employer.id", "employmentType.id", "job_analytics.id"],
-      order: [[literal("recommend_score"), "DESC"]],
+      order: [[Sequelize.literal("recommend_score"), "DESC"]],
       limit: parseInt(limit, 10),
-      subQuery: false,
+      subQuery: false,  // Important for correct grouping & limit
     });
 
     res.status(200).json({
@@ -1242,6 +1258,7 @@ const getRecommendedJobs = async (req: any, res: any, next: any) => {
     next(error);
   }
 };
+
 
 
 const addFavouriteJob = async (req: any, res: any, next: any) => {
