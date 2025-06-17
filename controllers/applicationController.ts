@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import db from '../models';
-const { ApplicationHistory, JobInfo, JobSeeker, Chat, ChatBody, Employer } = db;
+const { ApplicationHistory, JobInfo, JobSeeker, Chat, ChatBody, Employer, Feature, RecruitingCriteria } = db;
 
 import errorTypes from '../utils/errorTypes';
 const { NotFoundError, BadRequestError, ForbiddenError } = errorTypes;
@@ -140,6 +140,7 @@ const getAllApplications = async (req: any, res: any, next: any) => {
       where: whereCondition,
       limit: parseInt(limit, 10),
       offset: offset,
+      distinct: true,
       include: [
         {
           model: JobSeeker,
@@ -153,8 +154,16 @@ const getAllApplications = async (req: any, res: any, next: any) => {
               model: Employer,
               as: 'employer',
               attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"]
-            }
-          ]
+            },
+            {
+              model: Feature,
+              as: "features",
+            },
+            {
+              model: RecruitingCriteria,
+              as: "recruitingCriterias",
+            },
+          ],
         },
         {
           model: Chat,
