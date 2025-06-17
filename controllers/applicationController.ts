@@ -152,7 +152,7 @@ const getAllApplications = async (req: any, res: any, next: any) => {
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name']
+              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"]
             }
           ]
         },
@@ -212,7 +212,7 @@ const getJobSeekerApplications = async (req: any, res: any, next: any) => {
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name']
+              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"]
             }
           ]
         },
@@ -279,7 +279,7 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name']
+              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"]
             }
           ]
         },
@@ -303,7 +303,6 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
       ],
       order: [['created', 'DESC']]
     });
-    console.log("AAA")
     // Return response
     res.status(200).json({
       success: true,

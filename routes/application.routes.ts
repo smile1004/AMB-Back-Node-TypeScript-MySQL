@@ -6,7 +6,7 @@ const { verifyToken, isEmployer, isJobSeeker, isAdmin } = authMiddleware;
 import validationMiddleware from '../middleware/validationMiddleware';
 const { idParamValidation } = validationMiddleware;
 
-router.get('/', verifyToken, isAdmin, applicationController.getAllApplications);
+router.get('/', verifyToken, applicationController.getAllApplications);
 // Apply for a job (job seeker only)
 router.post('/', verifyToken, isJobSeeker, applicationController.applyForJob);
 

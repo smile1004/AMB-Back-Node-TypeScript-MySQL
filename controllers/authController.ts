@@ -273,7 +273,8 @@ const unifiedLogin = async (req: any, res: any, next: any) => {
       if (user) {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) throw new UnauthorizedError('Invalid credentials');
-        role = user.role || 'Admin';
+        // role = user.role || 'Admin';
+        role = 'Admin';
       }
     }
 

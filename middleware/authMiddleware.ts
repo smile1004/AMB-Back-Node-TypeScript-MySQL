@@ -42,7 +42,7 @@ const isAdmin = async (req: any, res: any, next: any) => {
     if (!req.user) {
       throw new UnauthorizedError("Not authenticated");
     }
-
+    console.log(req.user.role)
     if (req.user.role !== "admin") {
       throw new ForbiddenError("Admin access required");
     }
@@ -67,7 +67,6 @@ const isEmployer = async (req: any, res: any, next: any) => {
     if (!req.user) {
       throw new UnauthorizedError("Not authenticated");
     }
-
     if (req.user.role !== "employer") {
       throw new ForbiddenError("Employer access required");
     }
@@ -90,7 +89,8 @@ const isJobSeeker = async (req: any, res: any, next: any) => {
     if (!req.user) {
       throw new UnauthorizedError("Not authenticated");
     }
-    if (req.user.role !== "jobSeeker") {
+    console.log(req.user.role)
+    if (req.user.role !== "jobseeker") {
       throw new ForbiddenError("Job seeker access required");
     }
 
