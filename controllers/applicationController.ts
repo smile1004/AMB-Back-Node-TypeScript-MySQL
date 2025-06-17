@@ -106,6 +106,9 @@ const getAllApplications = async (req: any, res: any, next: any) => {
     if (searchTerm) {
       whereCondition[Op.or] = [
         { job_title: { [Op.like]: `%${searchTerm}%` } },
+        { '$jobSeeker.name$': { [Op.like]: `%${searchTerm}%` } },
+        { '$jobInfo.pay$': { [Op.like]: `%${searchTerm}%` } },
+        { '$jobInfo.employer.clinic_name$': { [Op.like]: `%${searchTerm}%` } }
       ];
     }
 
@@ -145,20 +148,23 @@ const getAllApplications = async (req: any, res: any, next: any) => {
         {
           model: JobSeeker,
           as: "jobSeeker",
+          required: true
         },
         {
           model: JobInfo,
           as: 'jobInfo',
+          required: true,
           include: [
             {
               model: Employer,
               as: 'employer',
+              required: true,
               attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"]
             },
-            {
-              model: Feature,
-              as: "features",
-            },
+            // {
+            //   model: Feature,
+            //   as: "features",
+            // },
             {
               model: RecruitingCriteria,
               as: "recruitingCriterias",
