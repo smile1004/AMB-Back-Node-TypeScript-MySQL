@@ -96,7 +96,8 @@ const getAllApplications = async (req: any, res: any, next: any) => {
       limit = 10,
       searchTerm,
       job_seeker_id,
-      employer_id
+      employer_id,
+      jobType
     } = req.query;
     // Calculate pagination
     const offset = (page - 1) * limit;
@@ -154,6 +155,8 @@ const getAllApplications = async (req: any, res: any, next: any) => {
           model: JobInfo,
           as: 'jobInfo',
           required: true,
+          where: jobType ? { job_detail_page_template_id: jobType } : undefined,
+
           include: [
             {
               model: Employer,
