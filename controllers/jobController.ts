@@ -1357,35 +1357,99 @@ const addFavouriteJob = async (req: any, res: any, next: any) => {
 
 const getFavouriteJobs = async (req: any, res: any, next: any) => {
   try {
+    const {
+      page = 1,
+      limit = 10,
+      searchTerm,
+      companyID,
+      jobType = "0",
+      sortBy = "created",
+      sortOrder = "DESC",
+    } = req.query;
+
     const { id: jobSeekerId } = req.user;
 
-    // Get favourite jobs with job info
-    const favouritejobs = await FavoriteJob.findAll({
-      where: { job_seeker_id: jobSeekerId },
+    const offset = (Number(page) - 1) * Number(limit);
+
+    const favouriteWhereCondition: any = {
+      job_seeker_id: jobSeekerId,
+    };
+
+    const jobInfoWhereCondition: any = {
+      deleted: null,
+    };
+
+    if (jobType && jobType !== "0") {
+      jobInfoWhereCondition.job_detail_page_template_id = jobType;
+    }
+
+    if (companyID) {
+      jobInfoWhereCondition.employer_id = companyID;
+    }
+
+    // 🔧 Create employer where clause only if searchTerm exists
+    const employerWhereCondition: any = {};
+    if (searchTerm) {
+      jobInfoWhereCondition[Op.or] = [
+        { job_title: { [Op.like]: `%${searchTerm}%` } },
+        { job_lead_statement: { [Op.like]: `%${searchTerm}%` } },
+        { short_appeal: { [Op.like]: `%${searchTerm}%` } },
+        { pay: { [Op.like]: `%${searchTerm}%` } },
+      ];
+
+      // 🔧 Move employer search inside its include
+      employerWhereCondition[Op.or] = [
+        { clinic_name: { [Op.like]: `%${searchTerm}%` } },
+        { city: { [Op.like]: `%${searchTerm}%` } },
+        { closest_station: { [Op.like]: `%${searchTerm}%` } },
+      ];
+    }
+
+    const { count, rows: favouritejobs } = await FavoriteJob.findAndCountAll({
+      where: favouriteWhereCondition,
       include: [
         {
           model: JobInfo,
           as: 'jobInfo',
+          where: jobInfoWhereCondition,
+          required: true,
           include: [
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name']
+              attributes: ['id', 'clinic_name', 'city', 'closest_station'],
+              ...(searchTerm && { where: employerWhereCondition }) // only apply if needed
             }
           ]
-        },
+        }
       ],
-      order: [['created', 'DESC']]
+      limit: Number(limit),
+      offset,
+      order: [[sortBy, sortOrder]],
     });
-    // Return response
+
+    const totalPages = Math.ceil(count / Number(limit));
+
     res.status(200).json({
       success: true,
-      data: favouritejobs
+      data: {
+        favouritejobs,
+        pagination: {
+          total: count,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages,
+        },
+      },
     });
+
   } catch (error) {
     next(error);
   }
 };
+
+
+
 
 export default {
   getAllJobs,
