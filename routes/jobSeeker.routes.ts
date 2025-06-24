@@ -18,5 +18,6 @@ router.delete('/favorite-jobs/:id', verifyToken, isJobSeeker, jobSeekerControlle
 //Admin
 router.get('/', verifyToken, isAdmin, jobSeekerController.getAllJobSeekers);
 router.get('/:id', verifyToken, isAdmin, jobSeekerController.getJobSeekerById);
+router.delete('/:id', verifyToken, isAdmin, jobSeekerController.deleteJobSeekerById);
 
 export default router;

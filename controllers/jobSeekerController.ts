@@ -474,6 +474,25 @@ function isValidEmail(email: any) {
   return emailRegex.test(email);
 }
 
+const deleteJobSeekerById = async (req: any, res: any, next: any) => {
+  try {
+    const { id } = req.params;
+
+    const jobSeeker = await JobSeeker.findByPk(id);
+    if (!jobSeeker) {
+      throw new NotFoundError('JobSeeker not found');
+    }
+    await jobSeeker.destroy();
+
+    res.status(200).json({
+      success: true,
+      message: 'JobSeeker deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   getProfile,
   updateProfile,
@@ -482,5 +501,6 @@ export default {
   addFavoriteJob,
   removeFavoriteJob,
   getAllJobSeekers,
-  getJobSeekerById
+  getJobSeekerById,
+  deleteJobSeekerById
 };
