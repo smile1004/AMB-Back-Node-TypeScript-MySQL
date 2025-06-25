@@ -454,7 +454,7 @@ const changePassword = async (req: any, res: any, next: any) => {
       case 'employer':
         user = await Employer.findByPk(id);
         break;
-      case 'jobSeeker':
+      case 'jobseeker':
         user = await JobSeeker.findByPk(id);
         break;
       default:

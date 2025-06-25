@@ -1304,7 +1304,7 @@ const addFavouriteJob = async (req: any, res: any, next: any) => {
   try {
     const job_seeker_id = req.user.id;
     const job_info_id = req.body.job_info_id;
-
+    console.log(req.user.role)
     if (!job_info_id) {
       throw new Error("job_info_id is required");
     }
