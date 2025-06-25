@@ -12,7 +12,7 @@ import validationMiddleware from '../middleware/validationMiddleware';
 
 // Job Seeker Routes
 router.post('/job-seeker/register', validationMiddleware.jobSeekerRegisterValidation, authController.registerJobSeeker);
-router.post('/job-seeker/update', verifyToken, isJobSeeker, validationMiddleware.jobSeekerRegisterValidation, authController.updateJobSeeker);
+router.post('/job-seeker/update', verifyToken, isJobSeeker, authController.updateJobSeeker);
 router.post('/job-seeker/login', validationMiddleware.loginValidation, authController.loginJobSeeker);
 
 // Employer Routes
@@ -31,5 +31,9 @@ router.get('/me', authMiddleware.verifyToken, authController.getCurrentUser);
 router.put('/change-password', authMiddleware.verifyToken, authController.changePassword);
 router.post('/forgot-password', authController.requestPasswordReset);
 router.post('/reset-password', authController.resetPassword);
+
+// ✅ New: Change Email Routes
+router.post('/change-email-request', verifyToken, authController.requestEmailChangeLink);
+router.get('/verify-email-change', authController.verifyEmailChange);
 
 export default router;

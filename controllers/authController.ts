@@ -354,24 +354,24 @@ const updateJobSeeker = async (req: any, res: any, next: any) => {
     }
 
     // Prevent email update if already taken
-    if (email && email !== jobSeeker.email) {
-      const emailUsed =
-        await JobSeeker.findOne({ where: { email } }) ||
-        await Employer.findOne({ where: { email } }) ||
-        await Admin.findOne({ where: { email } });
+    // if (email && email !== jobSeeker.email) {
+    //   const emailUsed =
+    //     await JobSeeker.findOne({ where: { email } }) ||
+    //     await Employer.findOne({ where: { email } }) ||
+    //     await Admin.findOne({ where: { email } });
 
-      if (emailUsed) {
-        throw new BadRequestError('Email is already registered');
-      }
+    //   if (emailUsed) {
+    //     throw new BadRequestError('Email is already registered');
+    //   }
 
-      jobSeeker.email = email;
-    }
+    //   jobSeeker.email = email;
+    // }
 
-    // Update password if provided
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      jobSeeker.password = await bcrypt.hash(password, salt);
-    }
+    // // Update password if provided
+    // if (password) {
+    //   const salt = await bcrypt.genSalt(10);
+    //   jobSeeker.password = await bcrypt.hash(password, salt);
+    // }
 
     // Update other fields
     Object.assign(jobSeeker, otherData);
@@ -606,6 +606,68 @@ const resetPassword = async (req: any, res: any, next: any) => {
   }
 };
 
+import jwt from "jsonwebtoken";
+
+export const requestEmailChangeLink = async (req, res, next) => {
+  try {
+    const { newEmail } = req.body;
+    const userId = req.user.id;
+    const role = req.user.role; // ✅ get from logged-in user
+
+    const token = jwt.sign(
+      { newEmail, userId, role },
+      process.env.JWT_SECRET,
+      { expiresIn: "90m" } // ✅ 90 minutes
+    );
+
+    const verificationUrl = `https://localhost:3000/verify-email-change?token=${token}`;
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Reuse-tenshoku" <your-email@gmail.com>`,
+      to: newEmail,
+      subject: "【リユース転職】メールアドレス変更確認",
+      text: `以下のURLをクリックして、メールアドレス変更を完了してください（90分以内に有効）：\n\n${verificationUrl}`,
+    });
+
+    res.status(200).json({ success: true, message: "確認リンクを送信しました。" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const verifyEmailChange = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const { userId, newEmail, role } = payload;
+
+    const Model = role === "employer" ? Employer : JobSeeker;
+    const user = await Model.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    user.email = newEmail;
+    await user.save();
+
+    res.redirect("https://localhost:3000/email-change-success");
+  } catch (err) {
+    res.status(400).send("Invalid or expired token");
+  }
+};
+
 
 export default {
   registerJobSeeker,
@@ -619,5 +681,7 @@ export default {
   updateEmployer,
   changePassword,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
+  requestEmailChangeLink,
+  verifyEmailChange
 };
