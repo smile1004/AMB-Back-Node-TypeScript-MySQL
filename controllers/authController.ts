@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../models';
-const { Admin, Employer, JobSeeker } = db;
+const { Admin, Employer, JobSeeker, ImagePath } = db;
 import { Op } from "sequelize";
 
 import errorTypes from '../utils/errorTypes';
@@ -304,42 +304,66 @@ const unifiedLogin = async (req: any, res: any, next: any) => {
  * Get current user profile
  * @route GET /api/auth/me
  */
+import { Op } from "sequelize";
+import { Admin, Employer, JobSeeker, ImagePath } from "../models";
+
 const getCurrentUser = async (req: any, res: any, next: any) => {
   try {
     const { id, role } = req.user;
     let user;
+    let postingCategory = null;
 
-    // Get user based on role
+    // Get user & posting category
     switch (role) {
-      case 'admin':
+      case "admin":
         user = await Admin.findByPk(id);
         break;
-      case 'employer':
+      case "employer":
         user = await Employer.findByPk(id, {
-          attributes: { exclude: ['password'] }
+          attributes: { exclude: ["password"] },
         });
+        postingCategory = 2;
         break;
-      case 'jobSeeker':
+      case "jobseeker":
         user = await JobSeeker.findByPk(id, {
-          attributes: { exclude: ['password'] }
+          attributes: { exclude: ["password"] },
         });
+        postingCategory = 1;
         break;
       default:
-        throw new UnauthorizedError('Invalid role');
+        throw new UnauthorizedError("Invalid role");
     }
 
     if (!user) {
-      throw new NotFoundError('User not found');
+      throw new NotFoundError("User not found");
+    }
+
+    // 🔹 Get avatar if applicable
+    let avatarUrl = null;
+    if (postingCategory) {
+      const avatarImage = await ImagePath.findOne({
+        where: {
+          posting_category: postingCategory,
+          parent_id: id,
+        },
+        order: [["created", "DESC"]],
+      });
+
+      avatarUrl = avatarImage ? avatarImage.entity_path : null;
     }
 
     res.status(200).json({
       success: true,
-      data: user
+      data: {
+        ...user.toJSON(),
+        avatar: avatarUrl,
+      },
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 
 const updateJobSeeker = async (req: any, res: any, next: any) => {
@@ -377,6 +401,19 @@ const updateJobSeeker = async (req: any, res: any, next: any) => {
     Object.assign(jobSeeker, otherData);
     await jobSeeker.save();
 
+
+    // 🔹 Upload avatar if present
+    if (req.file) {
+      const imageName = req.file.key.replace(/^uploaded\//, '');
+      await ImagePath.create({
+        image_name: imageName,
+        entity_path: `/uploads/${imageName}`,
+        posting_category: 1, // Avatar
+        parent_id: jobSeekerId,
+      });
+    }
+
+
     res.status(200).json({
       success: true,
       data: {
@@ -399,29 +436,43 @@ const updateEmployer = async (req: any, res: any, next: any) => {
       throw new NotFoundError('Employer not found');
     }
 
-    // Prevent email update if already taken
-    if (email && email !== employer.email) {
-      const emailUsed =
-        await JobSeeker.findOne({ where: { email } }) ||
-        await Employer.findOne({ where: { email } }) ||
-        await Admin.findOne({ where: { email } });
+    // // Prevent email update if already taken
+    // if (email && email !== employer.email) {
+    //   const emailUsed =
+    //     await JobSeeker.findOne({ where: { email } }) ||
+    //     await Employer.findOne({ where: { email } }) ||
+    //     await Admin.findOne({ where: { email } });
 
-      if (emailUsed) {
-        throw new BadRequestError('Email is already registered');
-      }
+    //   if (emailUsed) {
+    //     throw new BadRequestError('Email is already registered');
+    //   }
 
-      employer.email = email;
-    }
+    //   employer.email = email;
+    // }
 
-    // Update password if provided
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      employer.password = await bcrypt.hash(password, salt);
-    }
+    // // Update password if provided
+    // if (password) {
+    //   const salt = await bcrypt.genSalt(10);
+    //   employer.password = await bcrypt.hash(password, salt);
+    // }
 
     // Update other fields
+
+
+
     Object.assign(employer, otherData);
     await employer.save();
+
+        // 🔹 Upload avatar if present
+    if (req.file) {
+      const imageName = req.file.key.replace(/^uploaded\//, '');
+      await ImagePath.create({
+        image_name: imageName,
+        entity_path: `/uploads/${imageName}`,
+        posting_category: 2, // Avatar
+        parent_id: employerId,
+      });
+    }
 
     res.status(200).json({
       success: true,
