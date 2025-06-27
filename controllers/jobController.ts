@@ -93,32 +93,15 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       sortOrder = "DESC",
     } = req.query;
 
-    // Calculate pagination
     const offset = (page - 1) * limit;
-
-    // Build where condition
-    const whereCondition = {};
-    whereCondition.deleted = null;
-    if (isAdmin == "0") {
-      whereCondition.public_status = 1;
-    }
-    // Add employment type filter
-    if (employmentTypeId) {
-      // @ts-expect-error TS(2339): Property 'employment_type_id' does not exist on ty... Remove this comment to see the full error message
-      whereCondition.employment_type_id = employmentTypeId;
-    }
-    if (companyID) {
-      // @ts-expect-error TS(2339): Property 'employer_id' does not exist on ty... Remove this comment to see the full error message
-      whereCondition.employer_id = companyID;
-    }
-    if (jobType && jobType != "0") {
-      whereCondition.job_detail_page_template_id = jobType;
-    }
-    // Add search term filter
+    const whereCondition: any = { deleted: null };
+    if (isAdmin == "0") whereCondition.public_status = 1;
+    if (employmentTypeId) whereCondition.employment_type_id = employmentTypeId;
+    if (companyID) whereCondition.employer_id = companyID;
+    if (jobType && jobType != "0") whereCondition.job_detail_page_template_id = jobType;
 
     if (searchTerm) {
       const prefectureId = prefectureNameToIdJP[searchTerm.trim()];
-
       whereCondition[Op.or] = [
         { job_title: { [Op.like]: `%${searchTerm}%` } },
         { job_lead_statement: { [Op.like]: `%${searchTerm}%` } },
@@ -127,7 +110,6 @@ const getAllJobs = async (req: any, res: any, next: any) => {
         Sequelize.where(Sequelize.col("employer.city"), { [Op.like]: `%${searchTerm}%` }),
         Sequelize.where(Sequelize.col("employer.closest_station"), { [Op.like]: `%${searchTerm}%` }),
       ];
-
       if (prefectureId) {
         whereCondition[Op.or].push(
           Sequelize.where(Sequelize.col("employer.prefectures"), { [Op.eq]: prefectureId })
@@ -135,25 +117,15 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       }
     }
 
-    // Build include options
     const includeOptions = [
       {
         model: Employer,
         as: "employer",
         required: true,
-        attributes: [
-          "id",
-          "clinic_name",
-          "prefectures",
-          "city",
-          "closest_station",
-        ],
+        attributes: ["id", "clinic_name", "prefectures", "city", "closest_station"],
         where: {},
       },
-      {
-        model: EmploymentType,
-        as: "employmentType",
-      },
+      { model: EmploymentType, as: "employmentType" },
       {
         model: ImagePath,
         as: 'jobThumbnails',
@@ -165,7 +137,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
         model: Feature,
         as: "features",
         through: { attributes: [] },
-        required: true
+        required: true,
       },
     ];
 
@@ -180,14 +152,12 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       if (andFeatureIds.length > 0) {
         whereCondition[Op.and] = [
           ...(whereCondition[Op.and] || []),
-          Sequelize.literal(`
-            (
-              SELECT COUNT(DISTINCT jf.feature_id)
-              FROM job_infos_features AS jf
-              WHERE jf.job_info_id = JobInfo.id
-                AND jf.feature_id IN (${andFeatureIds.join(",")})
-            ) = ${andFeatureIds.length}
-          `),
+          Sequelize.literal(`(
+            SELECT COUNT(DISTINCT jf.feature_id)
+            FROM job_infos_features AS jf
+            WHERE jf.job_info_id = JobInfo.id
+              AND jf.feature_id IN (${andFeatureIds.join(",")})
+          ) = ${andFeatureIds.length}`),
         ];
       }
 
@@ -206,64 +176,47 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       }
     }
 
-    // Get jobs with filters, pagination and relations
-    const { count, rows: jobs } = await JobInfo.findAndCountAll({
+    const allJobs = await JobInfo.findAll({
       where: whereCondition,
       include: includeOptions,
-      distinct: true,
-      limit: parseInt(limit, 10),
-      offset: offset,
       order: [[sortBy, sortOrder]],
       attributes: {
         include: [
-          // ✅ HIGHLIGHTED: search_count
-          [
-            Sequelize.literal(`(
-          SELECT COALESCE(SUM(search_count), 0)
-          FROM job_analytics AS ja
-          WHERE ja.job_info_id = JobInfo.id
-        )`),
-            'search_count',
-          ],
-          // ✅ HIGHLIGHTED: recruits_count
-          [
-            Sequelize.literal(`(
-          SELECT COALESCE(SUM(recruits_count), 0)
-          FROM job_analytics AS ja
-          WHERE ja.job_info_id = JobInfo.id
-        )`),
-            'recruits_count',
-          ],
-          // ✅ HIGHLIGHTED: application_count
-          [
-            Sequelize.literal(`(
-          SELECT COUNT(*)
-          FROM application_histories AS app
-          WHERE app.job_info_id = JobInfo.id
-        )`),
-            'application_count',
-          ],
-          // ✅ HIGHLIGHTED: favourite_count
-          [
-            Sequelize.literal(`(
-          SELECT COUNT(*)
-          FROM favorite_jobs AS fav
-          WHERE fav.job_info_id = JobInfo.id
-        )`),
-            'favourite_count',
-          ],
+          [Sequelize.literal(`(SELECT COALESCE(SUM(search_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'search_count'],
+          [Sequelize.literal(`(SELECT COALESCE(SUM(recruits_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'recruits_count'],
+          [Sequelize.literal(`(SELECT COUNT(*) FROM application_histories AS app WHERE app.job_info_id = JobInfo.id)`), 'application_count'],
+          [Sequelize.literal(`(SELECT COUNT(*) FROM favorite_jobs AS fav WHERE fav.job_info_id = JobInfo.id)`), 'favourite_count'],
         ]
       }
     });
 
-    // Calculate total pages
+    const count = allJobs.length;
     const totalPages = Math.ceil(count / limit);
 
-    // Return response
+    // Highlight: Sort all filtered jobs by recommend_score if jobseeker
+    let jobs = allJobs;
+    if (req.user?.id && req.user?.role === 'jobseeker') {
+      jobs = await Promise.all(jobs.map(async (job) => {
+        const [analytic, applicationCount] = await Promise.all([
+          JobAnalytic.findOne({ where: { job_info_id: job.id } }),
+          ApplicationHistory.count({ where: { job_info_id: job.id } }),
+        ]);
+        const search = analytic?.search_count || 0;
+        const recruits = analytic?.recruits_count || 0;
+        const recommend_score = search * 0.3 + recruits * 0.3 + applicationCount * 4;
+        return { ...job.get(), recommend_score };
+      }));
+      jobs.sort((a, b) => b.recommend_score - a.recommend_score);
+    }
+
+    const paginatedJobs = jobs.slice(offset, offset + parseInt(limit, 10));
+    const recommendedJobs = jobs.slice(0, 5); // top 5 recommended FROM filtered result
+
     res.status(200).json({
       success: true,
       data: {
-        jobs,
+        jobs: paginatedJobs,
+        recommended: recommendedJobs,
         pagination: {
           total: count,
           page: parseInt(page, 10),
@@ -273,71 +226,24 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       },
     });
 
-    // Update analytics asynchronously (non-blocking)
-    // try {
-    //   const today = new Date();
-    //   const year = today.getFullYear().toString();
-    //   const month = (today.getMonth() + 1).toString().padStart(2, "0");
-    //   const day = today.getDate().toString().padStart(2, "0");
-
-    //   // For each job viewed in the list, increment search count
-    //   jobs.forEach(async (job: any) => {
-    //     await JobAnalytic.findOrCreate({
-    //       where: {
-    //         job_info_id: job.id,
-    //         year,
-    //         month,
-    //         day,
-    //       },
-    //       defaults: {
-    //         job_info_id: job.id,
-    //         year,
-    //         month,
-    //         day,
-    //         search_count: 1,
-    //         recruits_count: 0,
-    //       },
-    //       // @ts-expect-error TS(7031): Binding element 'analytics' implicitly has an 'any... Remove this comment to see the full error message
-    //     }).then(([analytics, created]) => {
-    //       if (!created) {
-    //         analytics.search_count += 1;
-    //         return analytics.save();
-    //       }
-    //     });
-    //   });
-    // } catch (analyticsError) {
-    //   logger.error("Error updating job analytics:", analyticsError);
-    //   // Continue response flow, don't fail if analytics fails
-    // }
-
     try {
-      for (const job of jobs) {
-        const existing = await JobAnalytic.findOne({
-          where: { job_info_id: job.id },
-        });
-
+      for (const job of paginatedJobs) {
+        const existing = await JobAnalytic.findOne({ where: { job_info_id: job.id } });
         if (existing) {
-          // Record exists – increment search_count
           existing.search_count += 1;
           await existing.save();
         } else {
-          // No record – create new with search_count = 1
-          await JobAnalytic.create({
-            job_info_id: job.id,
-            search_count: 1,
-            recruits_count: 0, // Optional default
-          });
+          await JobAnalytic.create({ job_info_id: job.id, search_count: 1, recruits_count: 0 });
         }
       }
-
     } catch (analyticsError) {
       logger.error("Error updating job analytics:", analyticsError);
-      // Continue response flow, don't fail if analytics fails
     }
   } catch (error) {
     next(error);
   }
 };
+
 
 /**
  * Get job by ID

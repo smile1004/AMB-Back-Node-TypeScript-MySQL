@@ -252,7 +252,7 @@ const unifiedLogin = async (req: any, res: any, next: any) => {
     if (user) {
       if (user.deleted) throw new UnauthorizedError('Account deactivated');
       const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) throw new UnauthorizedError('Invalid credentials');
+      if (!isMatch) throw new UnauthorizedError('Invalid credentials with password');
       role = 'JobSeeker';
     }
 
@@ -262,7 +262,7 @@ const unifiedLogin = async (req: any, res: any, next: any) => {
       if (user) {
         if (user.deleted) throw new UnauthorizedError('Account deactivated');
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) throw new UnauthorizedError('Invalid credentials');
+        if (!isMatch) throw new UnauthorizedError('Invalid credentials with email');
         role = 'Employer';
       }
     }
@@ -349,12 +349,13 @@ const getCurrentUser = async (req: any, res: any, next: any) => {
         order: [["created", "DESC"]],
       });
 
-      avatarUrl = avatarImage ? avatarImage.entity_path : null;
+      avatarUrl = avatarImage ? avatarImage.image_name : null;
     }
 
     res.status(200).json({
       success: true,
       data: {
+        role: role,
         ...user.toJSON(),
         avatar: avatarUrl,
       },
@@ -671,7 +672,7 @@ export const requestEmailChangeLink = async (req, res, next) => {
       { expiresIn: "90m" } // ✅ 90 minutes
     );
 
-    const verificationUrl = `https://localhost:3000/verify-email-change?token=${token}`;
+    const verificationUrl = `https://api.reuse-tenshoku.com/api/auth/verify-email-change?token=${token}`;
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -685,7 +686,7 @@ export const requestEmailChangeLink = async (req, res, next) => {
 
     await transporter.sendMail({
       from: `"Reuse-tenshoku" <your-email@gmail.com>`,
-      to: newEmail,
+      to: req.user.email,
       subject: "【リユース転職】メールアドレス変更確認",
       text: `以下のURLをクリックして、メールアドレス変更を完了してください（90分以内に有効）：\n\n${verificationUrl}`,
     });
@@ -713,7 +714,7 @@ export const verifyEmailChange = async (req, res, next) => {
     user.email = newEmail;
     await user.save();
 
-    res.redirect("https://localhost:3000/email-change-success");
+    res.redirect("https://amb5.vercel.app/email-change-success");
   } catch (err) {
     res.status(400).send("Invalid or expired token");
   }
