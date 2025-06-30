@@ -87,14 +87,20 @@ const getAllColumnsPagination = async (req: any, res: any, next: any) => {
  * @route GET /api/Column-items/:id
  */
 const getColumnItemById = async (req: any, res: any, next: any) => {
+  console.log("AAAA")
   try {
     const { id } = req.params;
 
     const ColumnItem = await Column.findByPk(id, {
-      include: [{
-        model: Column,
-        as: 'Column'
-      }]
+      include: [
+        {
+          model: ImagePath,
+          as: 'thumbnail',
+          required: false,
+          where: { posting_category: 21 },
+          attributes: ['entity_path'],
+        },
+      ],
     });
 
     if (!ColumnItem) {
