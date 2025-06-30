@@ -43,7 +43,7 @@ export default (sequelize: any, DataTypes: any) => {
     ]
   });
 
-  ImagePath.associate = function(models: any) {
+  ImagePath.associate = function (models: any) {
     // The association will depend on posting_category
     // For job postings (posting_category = 1)
     ImagePath.belongsTo(models.JobInfo, {
@@ -60,6 +60,11 @@ export default (sequelize: any, DataTypes: any) => {
       foreignKey: 'parent_id',
       constraints: false,
       as: 'jobInfoWorkplaceIntroduction'
+    });
+    ImagePath.belongsTo(models.Column, {
+      foreignKey: 'parent_id',
+      constraints: false,
+      as: 'columnThumbnail'
     });
   };
 

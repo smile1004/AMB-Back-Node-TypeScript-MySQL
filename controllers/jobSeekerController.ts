@@ -59,8 +59,8 @@ const getProfile = async (req: any, res: any, next: any) => {
  */
 const updateProfile = async (req: any, res: any, next: any) => {
   try {
-    const { id } = req.user;
     const {
+      id,
       name,
       name_kana,
       birthdate,

@@ -7,7 +7,7 @@ import validationMiddleware from '../middleware/validationMiddleware';
 
 // Profile routes
 router.get('/profile', verifyToken, isJobSeeker, jobSeekerController.getProfile);
-router.put('/profile', verifyToken, isJobSeeker, validationMiddleware.jobSeekerRegisterValidation, jobSeekerController.updateProfile);
+router.put('/', verifyToken, isAdmin, jobSeekerController.updateProfile);
 router.put('/change-email', verifyToken, isJobSeeker, jobSeekerController.changeEmail);
 
 // Favorite jobs

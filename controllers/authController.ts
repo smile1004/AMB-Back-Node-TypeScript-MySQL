@@ -672,7 +672,7 @@ export const requestEmailChangeLink = async (req, res, next) => {
       { expiresIn: "90m" } // ✅ 90 minutes
     );
 
-    const verificationUrl = `https://api.reuse-tenshoku.com/api/auth/verify-email-change?token=${token}`;
+    const verificationUrl = `http://172.20.1.185:3000/api/auth/verify-email-change?token=${token}`;
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -704,6 +704,8 @@ export const verifyEmailChange = async (req, res, next) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const { userId, newEmail, role } = payload;
 
+    console.log(userId, newEmail, role);
+    
     const Model = role === "employer" ? Employer : JobSeeker;
     const user = await Model.findByPk(userId);
 
@@ -714,7 +716,7 @@ export const verifyEmailChange = async (req, res, next) => {
     user.email = newEmail;
     await user.save();
 
-    res.redirect("https://amb5.vercel.app/email-change-success");
+    res.redirect("http://localhost:3003/email-change-success");
   } catch (err) {
     res.status(400).send("Invalid or expired token");
   }

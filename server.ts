@@ -34,7 +34,7 @@ import staffInfoRoutes from './routes/jobInfoStaffInfo.routes';
 import featureRoutes from './routes/feature.routes';
 import recruitingCriteriaRoutes from './routes/recruitingCriteria.routes';
 import uploadRoutes from './routes/upload.routes';
-
+import columnRoutes from './routes/column.routes';
 // Database setup
 import db from './models';
 
@@ -76,6 +76,7 @@ app.use('/api/search-items', searchItemRoutes);
 app.use('/api/clinic-points', clinicPointRoutes);
 app.use('/api/staff-info', staffInfoRoutes);
 app.use('/api/features', featureRoutes);
+app.use('/api/columns', columnRoutes);
 app.use('/api/recruitingCriterias', recruitingCriteriaRoutes);
 app.use('/api', uploadRoutes);
 

@@ -127,6 +127,14 @@ const featureValidation = [
   validate,
 ];
 
+const columnValidation = [
+  check("title", "Title is required").notEmpty(),
+  check("category", "Category is required").notEmpty(),
+  check("content", "Content is required").notEmpty(),
+
+  validate,
+];
+
 // recrutingCriteria validation
 const recruitingCriteriaValidation = [
   check("name", "Name is required").notEmpty(),
@@ -146,5 +154,6 @@ export default {
   messageValidation,
   idParamValidation,
   featureValidation,
+  columnValidation,
   recruitingCriteriaValidation
 };
