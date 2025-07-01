@@ -8,6 +8,7 @@ const {
   JobSeekersEmploymentType,
   JobSeekersDesiredCondition,
   FavoriteJob,
+  ImagePath,
   JobInfo,
 } = db;
 import errorTypes from "../utils/errorTypes";
@@ -59,8 +60,8 @@ const getProfile = async (req: any, res: any, next: any) => {
  */
 const updateProfile = async (req: any, res: any, next: any) => {
   try {
+    const {id} = req.params;
     const {
-      id,
       name,
       name_kana,
       birthdate,
@@ -400,6 +401,13 @@ const getAllJobSeekers = async (req: any, res: any, next: any) => {
         model: DesiredCondition,
         as: "desiredConditions",
         through: { attributes: ["id", "body"] },
+      },
+      {
+        model: ImagePath,
+        as: "avatar",
+        required: false,
+        where: { posting_category: 1 },
+        attributes: ['entity_path'],
       },
     ]
 

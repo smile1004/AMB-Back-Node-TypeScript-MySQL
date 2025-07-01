@@ -11,7 +11,7 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION!,
 });
 
-const localDir = path.join(__dirname, '../uploads/images');
+const localDir = path.join(__dirname, './images');
 
 const uploadFile = (filePath: string, fileName: string) => {
   const fileContent = fs.readFileSync(filePath);

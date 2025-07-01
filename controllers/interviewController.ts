@@ -1,32 +1,32 @@
 import { Op, Sequelize } from 'sequelize';
 import db from '../models';
 
-const { Column, ImagePath } = db;
+const { Interview, ImagePath } = db;
 import errorTypes from '../utils/errorTypes';
 const { NotFoundError, BadRequestError, ForbiddenError } = errorTypes;
 import { uploadToS3, parseAndReplaceImagesInHTML } from '../utils/imageHandler';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * Get all Column items
- * @route GET /api/Column-items
+ * Get all Interview items
+ * @route GET /api/Interview-items
  */
-const getAllColumns = async (req: any, res: any, next: any) => {
+const getAllInterviews = async (req: any, res: any, next: any) => {
   try {
 
-    const { count, rows: ColumnItems } = await Column.findAndCountAll();
+    const { count, rows: InterviewItems } = await Interview.findAndCountAll();
 
     res.status(200).json({
       success: true,
       count: count,
-      data: ColumnItems,
+      data: InterviewItems,
     });
   } catch (error) {
     next(error);
   }
 };
 
-const getAllColumnsPagination = async (req: any, res: any, next: any) => {
+const getAllInterviewsPagination = async (req: any, res: any, next: any) => {
   try {
     const {
       page = 1,
@@ -47,7 +47,7 @@ const getAllColumnsPagination = async (req: any, res: any, next: any) => {
       ];
     }
 
-    const { count, rows: ColumnItems } = await Column.findAndCountAll({
+    const { count, rows: InterviewItems } = await Interview.findAndCountAll({
       where: whereCondition,
       limit: parseInt(limit, 10),
       offset: offset,
@@ -63,9 +63,9 @@ const getAllColumnsPagination = async (req: any, res: any, next: any) => {
     });
 
     // 🔼 Increase search count if it's a search request
-    if (searchTerm && ColumnItems.length > 0) {
-      const matchedIds = ColumnItems.map((item: any) => item.id);
-      await Column.increment('search_cnt', {
+    if (searchTerm && InterviewItems.length > 0) {
+      const matchedIds = InterviewItems.map((item: any) => item.id);
+      await Interview.increment('search_cnt', {
         where: { id: matchedIds }
       });
     }
@@ -73,7 +73,7 @@ const getAllColumnsPagination = async (req: any, res: any, next: any) => {
     const totalPages = Math.ceil(count / limit);
 
     // ✅ Get 3 recommended jobs sorted by custom score
-    const recommended = await Column.findAll({
+    const recommended = await Interview.findAll({
       limit: 3,
       order: [
         [
@@ -98,7 +98,7 @@ const getAllColumnsPagination = async (req: any, res: any, next: any) => {
       success: true,
       data: {
         recommended,
-        ColumnItems,
+        InterviewItems,
         pagination: {
           total: count,
           page: parseInt(page, 10),
@@ -115,7 +115,7 @@ const getAllColumnsPagination = async (req: any, res: any, next: any) => {
 const getRecommened = async (req: any, res: any, next: any) => {
   try {
 
-    const recommended = await Column.findAll({
+    const recommended = await Interview.findAll({
       limit: 3,
       order: [
         [
@@ -145,16 +145,16 @@ const getRecommened = async (req: any, res: any, next: any) => {
 };
 
 /**
- * Get Column item by ID
- * @route GET /api/Column-items/:id
+ * Get Interview item by ID
+ * @route GET /api/Interview-items/:id
  */
-const getColumnItemById = async (req: any, res: any, next: any) => {
+const getInterviewItemById = async (req: any, res: any, next: any) => {
   try {
     const { id } = req.params;
 
-    await Column.increment('view_cnt', { where: { id } });
+    await Interview.increment('view_cnt', { where: { id } });
 
-    const ColumnItem = await Column.findByPk(id, {
+    const InterviewItem = await Interview.findByPk(id, {
       include: [
         {
           model: ImagePath,
@@ -166,13 +166,13 @@ const getColumnItemById = async (req: any, res: any, next: any) => {
       ],
     });
 
-    if (!ColumnItem) {
-      throw new NotFoundError('Column item not found');
+    if (!InterviewItem) {
+      throw new NotFoundError('Interview item not found');
     }
 
     res.status(200).json({
       success: true,
-      data: ColumnItem
+      data: InterviewItem
     });
   } catch (error) {
     next(error);
@@ -180,10 +180,10 @@ const getColumnItemById = async (req: any, res: any, next: any) => {
 };
 
 /**
- * Create Column item
- * @route POST /api/Column-items
+ * Create Interview item
+ * @route POST /api/Interview-items
  */
-const createColumnItem = async (req: any, res: any, next: any) => {
+const createInterviewItem = async (req: any, res: any, next: any) => {
   try {
     const { title, category } = req.body;
     let content = req.body.content || '';
@@ -208,7 +208,7 @@ const createColumnItem = async (req: any, res: any, next: any) => {
     content = updatedHTML;
 
     // Step 3: Create article
-    const column = await Column.create({
+    const interview = await Interview.create({
       title,
       category,
       // thumbnail_image: thumbnailImageName,
@@ -217,20 +217,20 @@ const createColumnItem = async (req: any, res: any, next: any) => {
 
     // Step 4: Update parent_id in image_paths
     if (thumbnailImageName) {
-      await ImagePath.update({ parent_id: column.id }, { where: { image_name: thumbnailImageName } });
+      await ImagePath.update({ parent_id: interview.id }, { where: { image_name: thumbnailImageName } });
     }
     for (const img of uploadedImages) {
       await ImagePath.create({
         image_name: img.key,
         entity_path: img.url,
         posting_category: 22, // Content image
-        parent_id: column.id,
+        parent_id: interview.id,
       });
     }
 
     res.status(201).json({
       success: true,
-      data: column,
+      data: interview,
     });
   } catch (err) {
     next(err);
@@ -238,18 +238,18 @@ const createColumnItem = async (req: any, res: any, next: any) => {
 };
 
 /**
- * Update Column item
- * @route PUT /api/Column-items/:id
+ * Update Interview item
+ * @route PUT /api/Interview-items/:id
  */
-const updateColumnItem = async (req: any, res: any, next: any) => {
+const updateInterviewItem = async (req: any, res: any, next: any) => {
   try {
     const { id } = req.params;
     const { title, category } = req.body;
     let content = req.body.content || '';
 
-    const columnItem = await Column.findByPk(id);
-    if (!columnItem) {
-      throw new NotFoundError('Column item not found');
+    const interviewItem = await Interview.findByPk(id);
+    if (!interviewItem) {
+      throw new NotFoundError('Interview item not found');
     }
 
     // 🖼️ Step 1: If new thumbnail uploaded
@@ -285,8 +285,8 @@ const updateColumnItem = async (req: any, res: any, next: any) => {
     const { updatedHTML, uploadedImages } = await parseAndReplaceImagesInHTML(content);
     content = updatedHTML;
 
-    // 📝 Step 3: Update Column fields
-    await columnItem.update({
+    // 📝 Step 3: Update Interview fields
+    await interviewItem.update({
       title,
       category,
       content,
@@ -298,13 +298,13 @@ const updateColumnItem = async (req: any, res: any, next: any) => {
         image_name: img.key,
         entity_path: img.url,
         posting_category: 22, // content image
-        parent_id: columnItem.id,
+        parent_id: interviewItem.id,
       });
     }
 
     res.status(200).json({
       success: true,
-      data: columnItem,
+      data: interviewItem,
     });
   } catch (error) {
     next(error);
@@ -313,22 +313,22 @@ const updateColumnItem = async (req: any, res: any, next: any) => {
 
 
 /**
- * Delete Column item
- * @route DELETE /api/Column-items/:id
+ * Delete Interview item
+ * @route DELETE /api/Interview-items/:id
  */
-const deleteColumnItem = async (req: any, res: any, next: any) => {
+const deleteInterviewItem = async (req: any, res: any, next: any) => {
   try {
     const { id } = req.params;
 
-    const ColumnItem = await Column.findByPk(id);
-    if (!ColumnItem) {
-      throw new NotFoundError('Column item not found');
+    const InterviewItem = await Interview.findByPk(id);
+    if (!InterviewItem) {
+      throw new NotFoundError('Interview item not found');
     }
-    await ColumnItem.destroy();
+    await InterviewItem.destroy();
 
     res.status(200).json({
       success: true,
-      message: 'Column item deleted successfully'
+      message: 'Interview item deleted successfully'
     });
   } catch (error) {
     next(error);
@@ -336,11 +336,11 @@ const deleteColumnItem = async (req: any, res: any, next: any) => {
 };
 
 export default {
-  getAllColumns,
-  getAllColumnsPagination,
+  getAllInterviews,
+  getAllInterviewsPagination,
   getRecommened,
-  getColumnItemById,
-  createColumnItem,
-  updateColumnItem,
-  deleteColumnItem
+  getInterviewItemById,
+  createInterviewItem,
+  updateInterviewItem,
+  deleteInterviewItem
 };

@@ -118,6 +118,12 @@ export default (sequelize: any, DataTypes: any) => {
       as: 'chats'
     });
 
+    JobSeeker.hasOne(models.ImagePath, {
+      foreignKey: 'parent_id',
+      constraints: false,
+      as: 'avatar', // used when including thumbnail in queries
+    });
+
     // JobSeeker.hasMany(models.JobSeekerJobMemo, {
     //   foreignKey: 'job_seeker_id',
     //   as: 'jobMemos'

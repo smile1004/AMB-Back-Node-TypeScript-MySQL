@@ -35,6 +35,7 @@ import featureRoutes from './routes/feature.routes';
 import recruitingCriteriaRoutes from './routes/recruitingCriteria.routes';
 import uploadRoutes from './routes/upload.routes';
 import columnRoutes from './routes/column.routes';
+import interviewRoutes from './routes/interview.routes';
 // Database setup
 import db from './models';
 
@@ -77,6 +78,7 @@ app.use('/api/clinic-points', clinicPointRoutes);
 app.use('/api/staff-info', staffInfoRoutes);
 app.use('/api/features', featureRoutes);
 app.use('/api/columns', columnRoutes);
+app.use('/api/interviews', interviewRoutes);
 app.use('/api/recruitingCriterias', recruitingCriteriaRoutes);
 app.use('/api', uploadRoutes);
 

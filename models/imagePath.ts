@@ -66,6 +66,11 @@ export default (sequelize: any, DataTypes: any) => {
       constraints: false,
       as: 'columnThumbnail'
     });
+    ImagePath.belongsTo(models.JobSeeker, {
+      foreignKey: 'parent_id',
+      constraints: false,
+      as: 'avatar'
+    });
   };
 
   return ImagePath;
