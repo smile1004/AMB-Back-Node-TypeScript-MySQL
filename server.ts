@@ -36,6 +36,7 @@ import recruitingCriteriaRoutes from './routes/recruitingCriteria.routes';
 import uploadRoutes from './routes/upload.routes';
 import columnRoutes from './routes/column.routes';
 import interviewRoutes from './routes/interview.routes';
+import chatRoutes from './routes/chat.routes';
 // Database setup
 import db from './models';
 
@@ -79,6 +80,7 @@ app.use('/api/staff-info', staffInfoRoutes);
 app.use('/api/features', featureRoutes);
 app.use('/api/columns', columnRoutes);
 app.use('/api/interviews', interviewRoutes);
+app.use('/api/chats', chatRoutes);
 app.use('/api/recruitingCriterias', recruitingCriteriaRoutes);
 app.use('/api', uploadRoutes);
 
@@ -88,6 +90,16 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 // Error middleware
 app.use(errorHandler);
+
+
+
+import http from 'http';
+import { initSocketServer } from './utils/socketServer'; 
+const server = http.createServer(app);
+
+initSocketServer(server);
+
+
 
 // Start the server
 const startServer = async () => {
@@ -99,8 +111,8 @@ const startServer = async () => {
     // Uncomment if needed
     // await db.sequelize.sync({ alter: true });
 
-    app.listen(PORT, () => {
-      logger.info(`Server is running on port ${PORT}`);
+    server.listen(PORT, () => {
+      logger.info(`🚀 Server & WebSocket running on port ${PORT}`);
     });
   } catch (error) {
     logger.error('Database connection failed:', error);

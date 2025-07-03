@@ -9,5 +9,5 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist"
   },
-  "include": ["./*", "utils/upload.ts"]
+  "include": ["./*", "utils/upload.ts", "utils/socketServer.ts"]
 }

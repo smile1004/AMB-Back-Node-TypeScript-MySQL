@@ -20,7 +20,7 @@ router.post('/',
         { name: "thumbnail", maxCount: 1 },
         { name: "interivewImages", maxCount: 10 },
     ]),
-    columnValidation, interviewController.createInterviewItem);
+    interviewController.createInterviewItem);
 router.put('/:id', memoryUpload.fields([
         { name: "thumbnail", maxCount: 1 },
         { name: "interivewImages", maxCount: 10 },

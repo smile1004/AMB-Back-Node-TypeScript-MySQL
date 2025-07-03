@@ -408,7 +408,7 @@ const updateJobSeeker = async (req: any, res: any, next: any) => {
       const imageName = req.file.key.replace(/^uploaded\//, '');
       await ImagePath.create({
         image_name: imageName,
-        entity_path: `/uploads/${imageName}`,
+        entity_path: `/uploaded/${imageName}`,
         posting_category: 1, // Avatar
         parent_id: jobSeekerId,
       });
@@ -469,7 +469,7 @@ const updateEmployer = async (req: any, res: any, next: any) => {
       const imageName = req.file.key.replace(/^uploaded\//, '');
       await ImagePath.create({
         image_name: imageName,
-        entity_path: `/uploads/${imageName}`,
+        entity_path: `/uploaded/${imageName}`,
         posting_category: 2, // Avatar
         parent_id: employerId,
       });

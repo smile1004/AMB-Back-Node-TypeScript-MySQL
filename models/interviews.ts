@@ -10,6 +10,14 @@ export default (sequelize: any, DataTypes: any) => {
             type: DataTypes.STRING(255),
             comment: 'title'
         },
+        description: {
+            type: DataTypes.STRING(255),
+            comment: 'description'
+        },
+        tag: {
+            type: DataTypes.INTEGER,
+            comment: 'tag'
+        },
         category: {
             type: DataTypes.STRING(255),
             comment: 'category'

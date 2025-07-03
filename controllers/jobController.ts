@@ -394,7 +394,7 @@ const createJob = async (req: any, res: any, next: any) => {
       const imageName = file.key.replace(/^uploaded\//, '');
       await ImagePath.create({
         image_name: imageName,
-        entity_path: `/uploads/${imageName}`,
+        entity_path: `/uploaded/${imageName}`,
         posting_category: 11,
         parent_id: job.id,
       });
@@ -402,7 +402,7 @@ const createJob = async (req: any, res: any, next: any) => {
       const fileName = req.body.thumbnail;
       await ImagePath.create({
         image_name: fileName,
-        entity_path: `/uploads/${fileName}`,
+        entity_path: `/uploaded/${fileName}`,
         posting_category: 11,
         parent_id: job.id,
       });
