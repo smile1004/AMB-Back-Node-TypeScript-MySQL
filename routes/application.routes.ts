@@ -17,6 +17,7 @@ router.get('/job-seeker', verifyToken, isJobSeeker, applicationController.getJob
 router.get('/employer', verifyToken, isEmployer, applicationController.getEmployerApplications);
 
 // Get application details
-router.get('/:id', verifyToken, idParamValidation, applicationController.getApplicationById);
+// router.get('/:id', verifyToken, idParamValidation, applicationController.getApplicationById);
+router.get('/:id', verifyToken, idParamValidation, applicationController.getApplicationByJobInfoId);
 
 export default router;

@@ -83,6 +83,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       page = 1,
       limit = 10,
       employmentTypeId,
+      employer_id,
       features,
       prefectures,
       searchTerm,
@@ -99,7 +100,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     if (employmentTypeId) whereCondition.employment_type_id = employmentTypeId;
     if (companyID) whereCondition.employer_id = companyID;
     if (jobType && jobType != "0") whereCondition.job_detail_page_template_id = jobType;
-
+    if (employer_id) whereCondition.employer_id = employer_id;
     if (searchTerm) {
       const prefectureId = prefectureNameToIdJP[searchTerm.trim()];
       whereCondition[Op.or] = [

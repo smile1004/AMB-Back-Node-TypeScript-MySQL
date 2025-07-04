@@ -10,41 +10,53 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
   try {
     const { user } = req;
     const isEmployer = user.role === 'employer';
-    const whereCondition = isEmployer ? { employer_id: user.id } : { job_seeker_id: user.id };
 
     const chats = await Chat.findAll({
-      where: whereCondition,
       include: [
         {
           model: ChatBody,
           as: 'messages',
           separate: true,
           order: [['created', 'DESC']],
-          limit: 1, // get only latest message
+          limit: 1, // latest message only
         },
         {
           model: JobInfo,
           as: 'jobInfo',
-          attributes: ['id', 'job_title'],
+          where: isEmployer ? { employer_id: user.id } : undefined, // 🔥 filter for employer
+          attributes: ['id', 'job_title', 'employer_id'],
+          required: true, // ensures filter applies at JOIN level
         },
       ],
+      where: isEmployer
+        ? {} // employer filter is handled by jobInfo.employer_id
+        : { job_seeker_id: user.id }, // 🔥 job seeker filter
     });
 
-    // Add unread count per chat
+    // 🔁 Add unread count per chat
     const chatListWithUnread = await Promise.all(
       chats.map(async (chat: any) => {
         const unreadCount = await ChatBody.count({
           where: {
             chat_id: chat.id,
             is_readed: 0,
-            sender: { [Op.ne]: isEmployer ? 1 : 2 },
+            sender: { [Op.ne]: isEmployer ? 1 : 2 }, // 1: employer, 2: seeker
           },
         });
+
+        const latestMessage = chat.messages[0];
         return {
           ...chat.toJSON(),
           unreadCount,
+          lastMessageTime: latestMessage?.created || chat.created,
         };
       })
+    );
+
+    // 🧠 Sort chats by latest message time
+    chatListWithUnread.sort(
+      (a, b) =>
+        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
     );
 
     res.json({ success: true, data: chatListWithUnread });
@@ -83,7 +95,7 @@ const getChatMessages = async (req: Request, res: Response, next: NextFunction) 
     const chat_id = parseInt(req.params.chat_id);
     const messages = await ChatBody.findAll({
       where: { chat_id: chat_id },
-      order: [['created', 'ASC']],
+      order: [['created', 'DESC']],
     });
     res.json({ success: true, data: messages });
   } catch (err) {

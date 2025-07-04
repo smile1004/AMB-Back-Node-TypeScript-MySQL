@@ -12,7 +12,8 @@ const { NotFoundError, BadRequestError, ForbiddenError } = errorTypes;
 const applyForJob = async (req: any, res: any, next: any) => {
   try {
     const { id: jobSeekerId } = req.user;
-    const { job_info_id, application_message } = req.body;
+    const { job_info_id } = req.body;
+    const application_message = "Hi, I would like to apply for this job.";
 
     if (!job_info_id) {
       throw new BadRequestError('Job ID is required');
@@ -62,7 +63,7 @@ const applyForJob = async (req: any, res: any, next: any) => {
     await ChatBody.create({
       chat_id: chat.id,
       no: nextMessageNumber,
-      sender: 0, // 0 for job seeker
+      sender: 1, // 0 for job seeker
       body: application_message,
       is_readed: 0,
       mail_send: 0,
@@ -395,10 +396,62 @@ const getApplicationById = async (req: any, res: any, next: any) => {
   }
 };
 
+const getApplicationByJobInfoId = async (req: any, res: any, next: any) => {
+  try {
+    const { id } = req.params;
+    const { id: userId, role } = req.user;
+
+    // Find application
+    const application = await ApplicationHistory.findAll({
+      include: [
+        {
+          model: JobInfo,
+          as: 'jobInfo',
+          include: [
+            {
+              model: Employer,
+              as: 'employer',
+              attributes: ['id', 'clinic_name']
+            }
+          ], where: {id: id}
+        },
+        {
+          model: JobSeeker,
+          as: 'jobSeeker',
+          attributes: ['id', 'name', 'email', 'tel', 'birthdate', 'prefectures']
+        },
+        {
+          model: Chat,
+          as: 'chat',
+          include: [
+            {
+              model: ChatBody,
+              as: 'messages',
+              order: [['created', 'ASC']]
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!application) {
+      throw new NotFoundError('Application not found');
+    }
+    // Return response
+    res.status(200).json({
+      success: true,
+      data: application
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   getAllApplications,
   applyForJob,
   getJobSeekerApplications,
   getEmployerApplications,
-  getApplicationById
+  getApplicationById,
+  getApplicationByJobInfoId
 };
