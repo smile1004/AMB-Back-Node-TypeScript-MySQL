@@ -185,7 +185,7 @@ const getInterviewItemById = async (req: any, res: any, next: any) => {
  */
 const createInterviewItem = async (req: any, res: any, next: any) => {
   try {
-    const { title, category } = req.body;
+    const { title, category, tag } = req.body;
     let content = req.body.content || '';
 
     // Step 1: Handle thumbnail upload
@@ -211,6 +211,7 @@ const createInterviewItem = async (req: any, res: any, next: any) => {
     const interview = await Interview.create({
       title,
       category,
+      tag,
       // thumbnail_image: thumbnailImageName,
       content,
     });

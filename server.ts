@@ -37,6 +37,7 @@ import uploadRoutes from './routes/upload.routes';
 import columnRoutes from './routes/column.routes';
 import interviewRoutes from './routes/interview.routes';
 import chatRoutes from './routes/chat.routes';
+import contactRoutes from './routes/contact.routes';
 // Database setup
 import db from './models';
 
@@ -82,7 +83,9 @@ app.use('/api/columns', columnRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/recruitingCriterias', recruitingCriteriaRoutes);
+app.use('/api/contacts', contactRoutes);
 app.use('/api', uploadRoutes);
+
 
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
