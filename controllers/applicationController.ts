@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import db from '../models';
-const { ApplicationHistory, JobInfo, JobSeeker, Chat, ChatBody, Employer, Feature, RecruitingCriteria } = db;
+const { ApplicationHistory, JobInfo, JobSeeker, Chat, ChatBody, Employer, Feature, RecruitingCriteria, ImagePath } = db;
 
 import errorTypes from '../utils/errorTypes';
 const { NotFoundError, BadRequestError, ForbiddenError } = errorTypes;
@@ -273,12 +273,10 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
     const jobs = await JobInfo.findAll({
       attributes: ["id"],
       where: { employer_id: employerId },
-      raw: true, // Ensures only plain data objects are returned
+      raw: true,
     });
 
-    // Extract job IDs from results
     const jobIds = jobs.map((job: any) => job.id);
-
 
     if (jobIds.length === 0) {
       return res.status(200).json({
@@ -287,7 +285,6 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
       });
     }
 
-    // Get all applications for employer's jobs
     const applications = await ApplicationHistory.findAll({
       where: { job_info_id: { [Op.in]: jobIds } },
       include: [
@@ -298,14 +295,31 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"]
+              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"],
+              // include: [
+              //   {
+              //     model: ImagePath,
+              //     as: 'avatar',
+              //     required: false,
+              //     where: { posting_category: 7 }, // ✅ 7 for employer avatar
+              //     attributes: ['entity_path']
+              //   }
+              // ]
             }
           ]
         },
         {
           model: JobSeeker,
           as: 'jobSeeker',
-          // attributes: ['id', 'name', 'email']
+          include: [
+            {
+              model: ImagePath,
+              as: 'avatar',
+              required: false,
+              where: { posting_category: 1 }, // ✅ 6 for jobseeker avatar
+              attributes: ['entity_path']
+            }
+          ]
         },
         {
           model: Chat,
@@ -322,7 +336,7 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
       ],
       order: [['created', 'DESC']]
     });
-    // Return response
+
     res.status(200).json({
       success: true,
       data: applications
@@ -413,7 +427,7 @@ const getApplicationByJobInfoId = async (req: any, res: any, next: any) => {
               as: 'employer',
               attributes: ['id', 'clinic_name']
             }
-          ], where: {id: id}
+          ], where: { id: id }
         },
         {
           model: JobSeeker,
