@@ -137,6 +137,12 @@ export default (sequelize: any, DataTypes: any) => {
       foreignKey: 'employer_id',
       as: 'jobInfos'
     });
+
+    Employer.hasOne(models.ImagePath, {
+      foreignKey: 'parent_id',
+      constraints: false,
+      as: 'avatar', // used when including thumbnail in queries
+    });
   };
 
   // Instance methods

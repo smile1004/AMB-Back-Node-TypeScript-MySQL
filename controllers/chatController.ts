@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import db from '../models';
 import { Op } from 'sequelize';
 
-const { Chat, ChatBody, JobInfo, JobSeeker, Employer } = db;
+const { Chat, ChatBody, JobInfo, JobSeeker, Employer, ImagePath } = db;
 
 // Get chat list for current user (employer or jobseeker)
 const getUserChats = async (req: Request, res: Response, next: NextFunction) => {
@@ -23,24 +23,54 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
         {
           model: JobInfo,
           as: 'jobInfo',
-          where: isEmployer ? { employer_id: user.id } : undefined, // 🔥 filter for employer
+          where: isEmployer ? { employer_id: user.id } : undefined,
           attributes: ['id', 'job_title', 'employer_id'],
-          required: true, // ensures filter applies at JOIN level
+          required: true,
+          include: [
+            {
+              model: Employer,
+              as: 'employer',
+              attributes: ['id', 'clinic_name', 'prefectures', 'city'],
+              include: [
+                {
+                  model: ImagePath,
+                  as: 'avatar',
+                  required: false,
+                  where: { posting_category: 2 }, // 👤 employer avatar
+                  attributes: ['entity_path'],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: JobSeeker,
+          as: 'jobSeeker',
+          attributes: ['id', 'name', 'email', 'sex', 'birthdate', 'prefectures', 'zip'],
+          include: [
+            {
+              model: ImagePath,
+              as: 'avatar',
+              required: false,
+              where: { posting_category: 1 }, // 👤 job seeker avatar
+              attributes: ['entity_path'],
+            },
+          ],
         },
       ],
       where: isEmployer
-        ? {} // employer filter is handled by jobInfo.employer_id
-        : { job_seeker_id: user.id }, // 🔥 job seeker filter
+        ? {} // employer filter handled via jobInfo.employer_id
+        : { job_seeker_id: user.id },
     });
 
-    // 🔁 Add unread count per chat
+    // 📨 Add unread count per chat
     const chatListWithUnread = await Promise.all(
       chats.map(async (chat: any) => {
         const unreadCount = await ChatBody.count({
           where: {
             chat_id: chat.id,
             is_readed: 0,
-            sender: { [Op.ne]: isEmployer ? 1 : 2 }, // 1: employer, 2: seeker
+            sender: { [Op.ne]: isEmployer ? 1 : 2 },
           },
         });
 
@@ -53,7 +83,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
       })
     );
 
-    // 🧠 Sort chats by latest message time
+    // 📅 Sort by latest message time
     chatListWithUnread.sort(
       (a, b) =>
         new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
@@ -64,6 +94,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
     next(err);
   }
 };
+
 
 // Mark messages as read
 const markMessagesRead = async (req: Request, res: Response, next: NextFunction) => {
