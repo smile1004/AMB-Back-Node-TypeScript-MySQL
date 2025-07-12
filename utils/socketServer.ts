@@ -25,7 +25,7 @@ export const initSocketServer = (httpServer: HTTPServer) => {
 
     socket.on('message', async (data) => {
       const { chat_id, sender, body, file_path = '', file_name = '' } = data;
-
+      console.log(data);
       try {
         const newMessage = await ChatBody.create({
           chat_id,

@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import db from '../models';
 import { Op } from 'sequelize';
+import { is } from 'cheerio/dist/commonjs/api/traversing';
 
 const { Chat, ChatBody, JobInfo, JobSeeker, Employer, ImagePath } = db;
 
@@ -11,6 +12,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
     const { user } = req;
     const isEmployer = user.role === 'employer';
 
+    console.log("=====", isEmployer);
     const chats = await Chat.findAll({
       include: [
         {
@@ -46,7 +48,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
         {
           model: JobSeeker,
           as: 'jobSeeker',
-          attributes: ['id', 'name', 'email', 'sex', 'birthdate', 'prefectures', 'zip'],
+          attributes: ['id', 'name', 'email', 'sex', 'birthdate', 'prefectures', 'zip', 'tel'],
           include: [
             {
               model: ImagePath,
@@ -70,7 +72,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
           where: {
             chat_id: chat.id,
             is_readed: 0,
-            sender: { [Op.ne]: isEmployer ? 1 : 2 },
+            sender: isEmployer ? 1 : 2,
           },
         });
 
@@ -109,7 +111,7 @@ const markMessagesRead = async (req: Request, res: Response, next: NextFunction)
         where: {
           chat_id: chatId,
           is_readed: 0,
-          sender: { [Op.ne]: isEmployer ? 1 : 2 },
+          sender: isEmployer ? 1 : 2,
         },
       }
     );

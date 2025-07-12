@@ -26,6 +26,7 @@ const getContacts = async (req: any, res: any, next: any) => {
         { company_name: { [Op.like]: `%${searchTerm}%` } },
         { email: { [Op.like]: `%${searchTerm}%` } },
         { telephone: { [Op.like]: `%${searchTerm}%` } },
+        { inquiry: { [Op.like]: `%${searchTerm}%` } },
       ];
     }
 

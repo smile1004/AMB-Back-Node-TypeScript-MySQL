@@ -25,6 +25,7 @@ const getCareerConsultations = async (req: any, res: any, next: any) => {
         { name: { [Op.like]: `%${searchTerm}%` } },
         { email: { [Op.like]: `%${searchTerm}%` } },
         { telephone: { [Op.like]: `%${searchTerm}%` } },
+        { inquiry: { [Op.like]: `%${searchTerm}%` } },
       ];
     }
 
