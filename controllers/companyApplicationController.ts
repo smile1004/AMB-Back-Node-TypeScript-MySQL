@@ -86,7 +86,6 @@ const getCompanyApplicationById = async (req: any, res: any, next: any) => {
 const createCompanyApplication = async (req: any, res: any, next: any) => {
   try {
     const { title, description } = req.body;
-    console.log(req.body)
     const companyApplication = await CompanyApplication.create(req.body);
 
     res.status(201).json({

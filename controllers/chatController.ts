@@ -12,7 +12,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
     const { user } = req;
     const isEmployer = user.role === 'employer';
 
-    console.log("=====", isEmployer);
+    // console.log("=====", isEmployer);
     const chats = await Chat.findAll({
       include: [
         {
@@ -136,6 +136,57 @@ const getChatMessages = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
+// controllers/chatController.ts
+
+const editMessage = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { body } = req.body;
+    const { user } = req;
+
+    const message = await ChatBody.findByPk(id);
+    if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+
+    const isEmployer = user.role === 'employer';
+    const senderCode = isEmployer ? 1 : 2;
+
+    if (message.sender !== senderCode) {
+      return res.status(403).json({ success: false, message: 'You can only edit your own message' });
+    }
+
+    message.body = body;
+    await message.save();
+
+    res.json({ success: true, data: message });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteMessage = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { user } = req;
+
+    const message = await ChatBody.findByPk(id);
+    if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+
+    const isEmployer = user.role === 'employer';
+    const senderCode = isEmployer ? 1 : 2;
+
+    if (message.sender !== senderCode) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own message' });
+    }
+
+    await message.destroy();
+
+    res.json({ success: true, message: 'Message deleted' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 export default {
-  getChatMessages, markMessagesRead, getUserChats
+  getChatMessages, markMessagesRead, getUserChats, editMessage, deleteMessage
 }

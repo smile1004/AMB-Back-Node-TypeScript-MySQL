@@ -704,7 +704,7 @@ export const verifyEmailChange = async (req, res, next) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const { userId, newEmail, role } = payload;
 
-    console.log(userId, newEmail, role);
+    // console.log(userId, newEmail, role);
     
     const Model = role === "employer" ? Employer : JobSeeker;
     const user = await Model.findByPk(userId);

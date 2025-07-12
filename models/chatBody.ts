@@ -38,6 +38,11 @@ export default (sequelize: any, DataTypes: any) => {
       defaultValue: DataTypes.NOW,
       comment: 'modified'
     },
+    deleted: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      comment: 'deleted'
+    },
     mail_send: {
       type: DataTypes.TINYINT,
       defaultValue: 0,
