@@ -20,9 +20,15 @@ export const initSocketServer = (httpServer: HTTPServer) => {
 
     socket.on('join', (chatId: number) => {
       socket.join(`chat_${chatId}`);
-      // console.log(`✅ Joined chat room: chat_${chatId}`);
+      console.log(`✅ Joined chat room: chat_${chatId}`);
     });
 
+    socket.on('notify_join', (notifyID: number) => {
+      socket.join(`${notifyID}`);
+      console.log(`✅ Notify: ${notifyID}`);
+    });
+
+    
     socket.on('message', async (data) => {
       const { chat_id, sender, body, file_path = '', file_name = '', notifyTo } = data;
       try {
@@ -37,7 +43,6 @@ export const initSocketServer = (httpServer: HTTPServer) => {
           file_name,
           deleted: null, // Soft delete field
         });
-
         io.to(`chat_${chat_id}`).emit('newMessage', newMessage);
         io.to(`${notifyTo}`).emit('newMessage', newMessage);
 
@@ -56,6 +61,7 @@ export const initSocketServer = (httpServer: HTTPServer) => {
         if (!message || message.deleted) return;
 
         message.body = newBody;
+        message.modified = new Date();
         await message.save();
 
         io.to(`chat_${message.chat_id}`).emit('messageUpdated', {
@@ -63,13 +69,8 @@ export const initSocketServer = (httpServer: HTTPServer) => {
           body: message.body,
           modified: message.modified,
         });
-
-        io.to(`${notifyTo}`).emit('messageUpdated', {
-          id: message.id,
-          body: message.body,
-          modified: message.modified,
-        });
-
+        console.log('EDIt:', notifyTo);
+        io.to(`${notifyTo}`).emit('newMessage', { type: "updateMessage" });
         console.log(`✏️ Message updated in chat_${message.chat_id}`);
       } catch (err) {
         console.error('❌ Edit failed:', err);
@@ -93,10 +94,7 @@ export const initSocketServer = (httpServer: HTTPServer) => {
           deletedAt: message.deleted,
         });
 
-        io.to(`${notifyTo}`).emit('messageDeleted', {
-          id: message.id,
-          deletedAt: message.deleted,
-        });
+        io.to(`${notifyTo}`).emit('newMessage', { type: "deleteMessage" });
 
         console.log(`🗑️ Message soft-deleted in chat_${message.chat_id}`);
       } catch (err) {

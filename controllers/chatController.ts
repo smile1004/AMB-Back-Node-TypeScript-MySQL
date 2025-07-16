@@ -11,8 +11,19 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
   try {
     const { user } = req;
     const isEmployer = user.role === 'employer';
+    const isAdmin = user.role === 'admin';
 
-    // console.log("=====", isEmployer);
+    // 🔥 Updated where clause based on role and agency
+    let chatWhere: any = {};
+
+    if (user.role === 'admin') {
+      chatWhere = { agency: 1 }; // 🔥 Admin sees agency chats only
+    } else if (user.role === 'employer') {
+      chatWhere = { agency: 0 }; // 🔥 Employer sees non-agency chats only
+    } else if (user.role === 'job_seeker') {
+      chatWhere = { job_seeker_id: user.id }; // 🔥 Job seeker sees their chats
+    }
+
     const chats = await Chat.findAll({
       include: [
         {
@@ -25,14 +36,14 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
         {
           model: JobInfo,
           as: 'jobInfo',
-          where: isEmployer ? { employer_id: user.id } : undefined,
-          attributes: ['id', 'job_title', 'employer_id'],
+          attributes: ['id', 'job_title', 'employer_id', 'job_detail_page_template_id'],
           required: true,
+          where: isEmployer ? { employer_id: user.id } : undefined, // 🔥 filter by jobInfo.employer_id for employer
           include: [
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name', 'prefectures', 'city'],
+              attributes: ['id', 'clinic_name', 'prefectures', 'city', 'tel'],
               include: [
                 {
                   model: ImagePath,
@@ -60,9 +71,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
           ],
         },
       ],
-      where: isEmployer
-        ? {} // employer filter handled via jobInfo.employer_id
-        : { job_seeker_id: user.id },
+      where: chatWhere,
     });
 
     // 📨 Add unread count per chat
@@ -72,7 +81,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
           where: {
             chat_id: chat.id,
             is_readed: 0,
-            sender: isEmployer ? 1 : 2,
+            sender: user.role === 'jobseeker' ? 2 : 1,
           },
         });
 
@@ -103,7 +112,7 @@ const markMessagesRead = async (req: Request, res: Response, next: NextFunction)
   try {
     const chatId = parseInt(req.params.chat_id);
     const { user } = req;
-    const isEmployer = user.role === 'employer';
+    const isJobSeeker = user.role === 'jobseeker';
 
     await ChatBody.update(
       { is_readed: 1 },
@@ -111,7 +120,7 @@ const markMessagesRead = async (req: Request, res: Response, next: NextFunction)
         where: {
           chat_id: chatId,
           is_readed: 0,
-          sender: isEmployer ? 1 : 2,
+          sender: isJobSeeker ? 2 : 1,
         },
       }
     );
@@ -155,6 +164,7 @@ const editMessage = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     message.body = body;
+    message.modified = new Date();
     await message.save();
 
     res.json({ success: true, data: message });

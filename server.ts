@@ -40,6 +40,7 @@ import chatRoutes from './routes/chat.routes';
 import companyApplicationRoutes from './routes/companyApplication.routes';
 import careerConsultationRoutes from './routes/careerConsultation.routes';
 import contactRoutes from './routes/contact.routes';
+import chatUploadRoutes from './routes/chatUpload.routes';
 // Database setup
 import db from './models';
 
@@ -89,7 +90,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/company-applications', companyApplicationRoutes);
 app.use('/api/career-consultations', careerConsultationRoutes);
 app.use('/api', uploadRoutes);
-
+app.use('/api/chat-upload', chatUploadRoutes);
 
 // Health check
 app.get('/health', (_req: Request, res: Response) => {

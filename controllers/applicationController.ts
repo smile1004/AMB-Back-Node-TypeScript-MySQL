@@ -19,14 +19,19 @@ const applyForJob = async (req: any, res: any, next: any) => {
       throw new BadRequestError('Job ID is required');
     }
 
-    // Find job
+    // ✅ Find job
     const job = await JobInfo.findByPk(job_info_id);
 
     if (!job || job.deleted || job.public_status !== 1) {
       throw new NotFoundError('Job not found or not active');
     }
 
-    // Check if already applied
+    // ✅ Determine employer_id based on template
+    const isAgency = job.job_detail_page_template_id === 2;
+
+    console.log("Agency Check:", isAgency);
+    
+    // ✅ Check if already applied
     const existingApplication = await ApplicationHistory.findOne({
       where: {
         job_info_id,
@@ -38,7 +43,7 @@ const applyForJob = async (req: any, res: any, next: any) => {
       throw new BadRequestError('You have already applied for this job');
     }
 
-    // Create or get existing chat
+    // ✅ Create or get existing chat
     let chat = await Chat.findOne({
       where: {
         job_info_id,
@@ -51,11 +56,12 @@ const applyForJob = async (req: any, res: any, next: any) => {
         job_info_id,
         job_seeker_id: jobSeekerId,
         job_title: job.job_title,
+        agency: isAgency, // 🔥 Save target employer/admin here
         is_send_privacy: 0
       });
     }
 
-    // Create application message
+    // ✅ Create application message
     const nextMessageNumber = (await ChatBody.count({
       where: { chat_id: chat.id }
     })) + 1;
@@ -63,14 +69,14 @@ const applyForJob = async (req: any, res: any, next: any) => {
     await ChatBody.create({
       chat_id: chat.id,
       no: nextMessageNumber,
-      sender: 1, // 0 for job seeker
+      sender: 1, // 🔁 1 = job seeker
       body: application_message,
       is_readed: 0,
       mail_send: 0,
-      chat_flg: 1  // 1 indicates this is an application message
+      chat_flg: 1 // 🔥 Application type
     });
 
-    // Create application record
+    // ✅ Save application history
     const application = await ApplicationHistory.create({
       job_info_id,
       job_seeker_id: jobSeekerId,
@@ -78,7 +84,6 @@ const applyForJob = async (req: any, res: any, next: any) => {
       chat_id: chat.id
     });
 
-    // Return response
     res.status(201).json({
       success: true,
       data: application,
@@ -88,6 +93,7 @@ const applyForJob = async (req: any, res: any, next: any) => {
     next(error);
   }
 };
+
 
 const getAllApplications = async (req: any, res: any, next: any) => {
   try {
@@ -150,7 +156,16 @@ const getAllApplications = async (req: any, res: any, next: any) => {
         {
           model: JobSeeker,
           as: "jobSeeker",
-          required: true
+          required: true,
+          include: [
+            {
+              model: ImagePath,
+              as: 'avatar',
+              required: false,
+              where: { posting_category: 1 }, // 👤 employer avatar
+              attributes: ['entity_path'],
+            },
+          ],
         },
         {
           model: JobInfo,
@@ -163,7 +178,16 @@ const getAllApplications = async (req: any, res: any, next: any) => {
               model: Employer,
               as: 'employer',
               required: true,
-              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"]
+              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"],
+              include: [
+                {
+                  model: ImagePath,
+                  as: 'avatar',
+                  required: false,
+                  where: { posting_category: 2 }, // 👤 employer avatar
+                  attributes: ['entity_path'],
+                },
+              ],
             },
             // {
             //   model: Feature,
@@ -231,7 +255,16 @@ const getJobSeekerApplications = async (req: any, res: any, next: any) => {
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"]
+              attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"],
+              include: [
+                {
+                  model: ImagePath,
+                  as: 'avatar',
+                  required: false,
+                  where: { posting_category: 2 }, // 👤 employer avatar
+                  attributes: ['entity_path'],
+                },
+              ],
             }
           ]
         },
@@ -296,6 +329,15 @@ const getEmployerApplications = async (req: any, res: any, next: any) => {
               model: Employer,
               as: 'employer',
               attributes: ['id', 'clinic_name', "prefectures", "city", "zip", "tel"],
+              include: [
+                {
+                  model: ImagePath,
+                  as: 'avatar',
+                  required: false,
+                  where: { posting_category: 2 }, // 👤 employer avatar
+                  attributes: ['entity_path'],
+                },
+              ],
               // include: [
               //   {
               //     model: ImagePath,
@@ -365,14 +407,32 @@ const getApplicationById = async (req: any, res: any, next: any) => {
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name']
+              attributes: ['id', 'clinic_name'],
+              include: [
+                {
+                  model: ImagePath,
+                  as: 'avatar',
+                  required: false,
+                  where: { posting_category: 2 }, // 👤 employer avatar
+                  attributes: ['entity_path'],
+                },
+              ],
             }
           ]
         },
         {
           model: JobSeeker,
           as: 'jobSeeker',
-          attributes: ['id', 'name', 'email', 'tel', 'birthdate', 'prefectures']
+          attributes: ['id', 'name', 'email', 'tel', 'birthdate', 'prefectures'],
+          include: [
+            {
+              model: ImagePath,
+              as: 'avatar',
+              required: false,
+              where: { posting_category: 1 }, // 👤 employer avatar
+              attributes: ['entity_path'],
+            },
+          ],
         },
         {
           model: Chat,
@@ -425,14 +485,32 @@ const getApplicationByJobInfoId = async (req: any, res: any, next: any) => {
             {
               model: Employer,
               as: 'employer',
-              attributes: ['id', 'clinic_name']
+              attributes: ['id', 'clinic_name'],
+              include: [
+                {
+                  model: ImagePath,
+                  as: 'avatar',
+                  required: false,
+                  where: { posting_category: 2 }, // 👤 employer avatar
+                  attributes: ['entity_path'],
+                },
+              ],
             }
           ], where: { id: id }
         },
         {
           model: JobSeeker,
           as: 'jobSeeker',
-          attributes: ['id', 'name', 'email', 'tel', 'birthdate', 'prefectures']
+          attributes: ['id', 'name', 'email', 'tel', 'birthdate', 'prefectures'],
+          include: [
+            {
+              model: ImagePath,
+              as: 'avatar',
+              required: false,
+              where: { posting_category: 1 },
+              attributes: ['entity_path'],
+            },
+          ],
         },
         {
           model: Chat,

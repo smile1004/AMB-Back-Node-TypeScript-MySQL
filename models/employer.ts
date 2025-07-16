@@ -138,6 +138,7 @@ export default (sequelize: any, DataTypes: any) => {
       as: 'jobInfos'
     });
 
+
     Employer.hasOne(models.ImagePath, {
       foreignKey: 'parent_id',
       constraints: false,

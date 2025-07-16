@@ -6,6 +6,11 @@ export default (sequelize: any, DataTypes: any) => {
       autoIncrement: true,
       comment: 'id'
     },
+    agency: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      comment: 'agency'
+    },
     job_info_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -48,7 +53,7 @@ export default (sequelize: any, DataTypes: any) => {
     ]
   });
 
-  Chat.associate = function(models: any) {
+  Chat.associate = function (models: any) {
     // Associations
     Chat.belongsTo(models.JobInfo, {
       foreignKey: 'job_info_id',
