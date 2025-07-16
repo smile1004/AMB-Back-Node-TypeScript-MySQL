@@ -28,8 +28,6 @@ const applyForJob = async (req: any, res: any, next: any) => {
 
     // ✅ Determine employer_id based on template
     const isAgency = job.job_detail_page_template_id === 2;
-
-    console.log("Agency Check:", isAgency);
     
     // ✅ Check if already applied
     const existingApplication = await ApplicationHistory.findOne({

@@ -702,10 +702,7 @@ export const verifyEmailChange = async (req, res, next) => {
     const { token } = req.query;
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const { userId, newEmail, role } = payload;
-
-    // console.log(userId, newEmail, role);
-    
+    const { userId, newEmail, role } = payload;    
     const Model = role === "employer" ? Employer : JobSeeker;
     const user = await Model.findByPk(userId);
 

@@ -16,7 +16,7 @@ export const initSocketServer = (httpServer: HTTPServer) => {
   });
 
   io.on('connection', (socket) => {
-    // console.log('🔌 Connected:', socket.id);
+    console.log('🔌 Connected:', socket.id);
 
     socket.on('join', (chatId: number) => {
       socket.join(`chat_${chatId}`);
@@ -69,7 +69,6 @@ export const initSocketServer = (httpServer: HTTPServer) => {
           body: message.body,
           modified: message.modified,
         });
-        console.log('EDIt:', notifyTo);
         io.to(`${notifyTo}`).emit('newMessage', { type: "updateMessage" });
         console.log(`✏️ Message updated in chat_${message.chat_id}`);
       } catch (err) {
@@ -80,7 +79,6 @@ export const initSocketServer = (httpServer: HTTPServer) => {
 
     // 🗑️ Soft delete message
     socket.on('deleteMessage', async (data) => {
-      console.log('deleteMessage event received:', data);
       const { messageId, notifyTo } = data;
       try {
         const message = await ChatBody.findByPk(messageId);
