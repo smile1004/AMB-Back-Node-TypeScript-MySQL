@@ -71,7 +71,8 @@ const applyForJob = async (req: any, res: any, next: any) => {
       body: application_message,
       is_readed: 0,
       mail_send: 0,
-      chat_flg: 1 // 🔥 Application type
+      chat_flg: 1, // 🔥 Application type
+      deleted: null
     });
 
     // ✅ Save application history
