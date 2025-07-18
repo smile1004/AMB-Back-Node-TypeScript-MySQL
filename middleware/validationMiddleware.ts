@@ -25,7 +25,7 @@ const validate = (req: any, res: any, next: any) => {
 const jobSeekerRegisterValidation = [
   check("name", "Name is required").notEmpty(),
   check("name_kana", "Name(Kana) is required").notEmpty(),
-  check("name_kana", "Name(Kana) must be in Katakana format").matches(/^[ァ-ンヴー]+$/),
+  // check("name_kana", "Name(Kana) must be in Katakana format").matches(/^[ァ-ンヴー]+$/),
   check("birthdate", "Birthdate is required").notEmpty(),
   check("birthdate", "Invalid Birthdate format(1970-01-01)").isISO8601(),
   check("sex", "Sex is required").notEmpty(),
