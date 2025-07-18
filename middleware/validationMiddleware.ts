@@ -41,7 +41,7 @@ const jobSeekerRegisterValidation = [
 const employerRegisterValidation = [
   check("clinic_name", "Company Name is required").notEmpty(),
   check("clinic_name_kana", "Company Name(Kana) is required").notEmpty(),
-  check("clinic_name_kana", "Company Name(Kana) must be in Katakana format").matches(/^[ァ-ンヴー]+$/),
+  // check("clinic_name_kana", "Company Name(Kana) must be in Katakana format").matches(/^[ァ-ンヴー]+$/),
   check("zip", "ZIP code is required").notEmpty(),
   check("zip", "Invalid Zip code format (123-4567)").matches(/^\d{3}-\d{4}$/),
   check("tel", "Telephone number is required").notEmpty(),

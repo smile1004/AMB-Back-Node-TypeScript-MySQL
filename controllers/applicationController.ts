@@ -13,7 +13,7 @@ const applyForJob = async (req: any, res: any, next: any) => {
   try {
     const { id: jobSeekerId } = req.user;
     const { job_info_id } = req.body;
-    const application_message = "Hi, I would like to apply for this job.";
+    const application_message = "応募しました。";
 
     if (!job_info_id) {
       throw new BadRequestError('Job ID is required');
