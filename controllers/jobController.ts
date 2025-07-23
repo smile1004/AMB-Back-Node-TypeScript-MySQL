@@ -17,7 +17,7 @@ const {
   JobInfoWorkplaceIntroduction,
   ImagePath,
   JobAnalytic,
-} = db;
+} = db as any;
 import errorTypes from "../utils/errorTypes";
 const { NotFoundError, BadRequestError, ForbiddenError } = errorTypes;
 import log from "../utils/logger";
@@ -1276,7 +1276,6 @@ const getFavouriteJobs = async (req: any, res: any, next: any) => {
     } = req.query;
 
     const { id: jobSeekerId } = req.user;
-
     const offset = (Number(page) - 1) * Number(limit);
 
     const favouriteWhereCondition: any = {
@@ -1295,21 +1294,13 @@ const getFavouriteJobs = async (req: any, res: any, next: any) => {
       jobInfoWhereCondition.employer_id = companyID;
     }
 
-    // 🔧 Create employer where clause only if searchTerm exists
-    const employerWhereCondition: any = {};
     if (searchTerm) {
+      const keyword = `%${searchTerm}%`;
       jobInfoWhereCondition[Op.or] = [
-        { job_title: { [Op.like]: `%${searchTerm}%` } },
-        { job_lead_statement: { [Op.like]: `%${searchTerm}%` } },
-        { short_appeal: { [Op.like]: `%${searchTerm}%` } },
-        { pay: { [Op.like]: `%${searchTerm}%` } },
-      ];
-
-      // 🔧 Move employer search inside its include
-      employerWhereCondition[Op.or] = [
-        { clinic_name: { [Op.like]: `%${searchTerm}%` } },
-        { city: { [Op.like]: `%${searchTerm}%` } },
-        { closest_station: { [Op.like]: `%${searchTerm}%` } },
+        { job_title: { [Op.like]: keyword } },
+        { job_lead_statement: { [Op.like]: keyword } },
+        { short_appeal: { [Op.like]: keyword } },
+        { pay: { [Op.like]: keyword } },
       ];
     }
 
@@ -1319,21 +1310,20 @@ const getFavouriteJobs = async (req: any, res: any, next: any) => {
         {
           model: JobInfo,
           as: 'jobInfo',
-          where: jobInfoWhereCondition,
           required: true,
+          where: jobInfoWhereCondition,
           include: [
             {
               model: Employer,
               as: 'employer',
               attributes: ['id', 'clinic_name', 'city', 'closest_station'],
-              ...(searchTerm && { where: employerWhereCondition }) // only apply if needed
-            }
-          ]
-        }
+            },
+          ],
+        },
       ],
       limit: Number(limit),
       offset,
-      order: [[sortBy, sortOrder]],
+      order: [['jobInfo', sortBy, sortOrder]],
     });
 
     const totalPages = Math.ceil(count / Number(limit));
@@ -1350,11 +1340,14 @@ const getFavouriteJobs = async (req: any, res: any, next: any) => {
         },
       },
     });
-
   } catch (error) {
+    console.error("❌ getFavouriteJobs error:", error);
     next(error);
   }
 };
+
+
+
 
 
 
