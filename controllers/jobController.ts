@@ -89,6 +89,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       prefectures,
       searchTerm,
       companyID,
+      public_status,
       isAdmin = "0",
       jobType = "0",
       sortBy = "created",
@@ -103,6 +104,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     if (jobType && jobType != "0") whereCondition.job_detail_page_template_id = jobType;
     if (employer_id) whereCondition.employer_id = employer_id;
     if (agency) whereCondition.job_detail_page_template_id = agency;
+    if (public_status) whereCondition.public_status = public_status;
     if (searchTerm) {
       const prefectureId = prefectureNameToIdJP[searchTerm.trim()];
       whereCondition[Op.or] = [

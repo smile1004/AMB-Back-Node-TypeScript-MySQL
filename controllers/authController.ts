@@ -549,11 +549,22 @@ import nodemailer from "nodemailer";
 
 const requestPasswordReset = async (req: any, res: any, next: any) => {
   try {
-    const { email, role } = req.body; // Role: "employer" or "jobSeeker"
+    const { email } = req.body;
 
-    const Model = role === "employer" ? Employer : JobSeeker;
-    const user = await Model.findOne({ where: { email } });
+    // Use model references as any to avoid type errors
+    const EmployerModel = db["Employer"] as any;
+    const JobSeekerModel = db["JobSeeker"] as any;
 
+    let user = await EmployerModel.findOne({ where: { email } });
+    let role = null;
+    if (user) {
+      role = "employer";
+    } else {
+      user = await JobSeekerModel.findOne({ where: { email } });
+      if (user) {
+        role = "jobSeeker";
+      }
+    }
     if (!user) {
       return res.status(404).json({ success: false, message: "Email not found" });
     }
@@ -563,9 +574,10 @@ const requestPasswordReset = async (req: any, res: any, next: any) => {
     user.token_expiry = new Date(Date.now() + 15 * 60 * 1000); // 🔹 Expiry in 15 mins
     await user.save();
 
+    const smtpPort = parseInt(process.env.SMTP_PORT || "587");
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT),
+      port: smtpPort,
       secure: false, // Change to `true` if using port 465
       auth: {
         user: process.env.SMTP_USER,
@@ -581,11 +593,9 @@ const requestPasswordReset = async (req: any, res: any, next: any) => {
       }
     });
 
-
     const resetLink = `https://reuse-tenshoku.com/reset-password?token=${resetToken}&role=${role}`;
 
     await transporter.sendMail({
-      // from: `"Your Name" <your-email@gmail.com>`,
       from: `"Reuse-tenshoku" <your-email@gmail.com>`,
       to: email,
       subject: "【リユース転職】求職者、パスワード再発行用URLのご案内",
