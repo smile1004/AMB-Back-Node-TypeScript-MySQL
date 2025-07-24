@@ -30,16 +30,20 @@ router.post('/login', validationMiddleware.loginValidation, authController.unifi
 // General Routes
 router.get('/me', authMiddleware.verifyToken, authController.getCurrentUser);
 router.put('/change-password', authMiddleware.verifyToken, authController.changePassword);
+
+// ✅ Forgot Password and Reset Password
 router.post('/forgot-password', authController.requestPasswordReset);
 router.post('/reset-password', authController.resetPassword);
 
-// ✅ New: Change Email Routes
+// ✅ Change Email Routes
 router.post('/change-email-request', verifyToken, authController.requestEmailChangeLink);
 router.get('/verify-email-change', authController.verifyEmailChange);
 
 // ✅ Check Email Routes
 router.post('/confirm-email-request', authController.confirmEmailRequest);
-router.get('/confirm-email', authController.confirmEmail);
+router.post('/confirm-email', authController.confirmEmail);
+
 // ✅ Toggle User Status
 router.post('/toggle-user-status', verifyToken, isAdmin, authController.toggleUserStatus);
+
 export default router;

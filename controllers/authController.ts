@@ -5,43 +5,6 @@ const { Admin, Employer, JobSeeker, ImagePath } = db;
 import { Op } from "sequelize";
 
 import errorTypes from '../utils/errorTypes';
-// Toggle user status (active <-> blocked) by email
-export const toggleUserStatus = async (req: any, res: any, next: any) => {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
-    }
-    // Use model references as any to avoid type errors
-    const EmployerModel = db["Employer"] as any;
-    const JobSeekerModel = db["JobSeeker"] as any;
-    let user = await EmployerModel.findOne({ where: { email } });
-    let role = null;
-    if (user) {
-      role = "employer";
-    } else {
-      user = await JobSeekerModel.findOne({ where: { email } });
-      if (user) {
-        role = "jobSeeker";
-      }
-    }
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-    const pastStatus = user.status;
-    let newStatus = "active";
-    if (pastStatus === "active") {
-      newStatus = "blocked";
-    } else if (pastStatus === "blocked") {
-      newStatus = "active";
-    }
-    user.status = newStatus;
-    await user.save();
-    res.status(200).json({ success: true, message: `User status updated to '${newStatus}' from '${pastStatus}' as ${role}` });
-  } catch (error) {
-    next(error);
-  }
-};
 const { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } = errorTypes;
 
 import dotenv from 'dotenv';
@@ -93,6 +56,7 @@ const registerJobSeeker = async (req: any, res: any, next: any) => {
       name,
       email,
       password: hashedPassword,
+      status: 'pending',
       ...otherData
     });
 
@@ -138,6 +102,7 @@ const registerEmployer = async (req: any, res: any, next: any) => {
       clinic_name,
       email,
       password: hashedPassword,
+      status: 'pending',
       ...otherData
     });
 
@@ -173,6 +138,10 @@ const loginJobSeeker = async (req: any, res: any, next: any) => {
     // Check if the user is deleted
     if (jobSeeker.deleted) {
       throw new UnauthorizedError('Account deactivated');
+    }
+    // Check if status is not active
+    if (jobSeeker.status !== 'active') {
+      throw new UnauthorizedError('Account not active. Please confirm your email.');
     }
 
     // Check password
@@ -214,6 +183,10 @@ const loginEmployer = async (req: any, res: any, next: any) => {
     // Check if the user is deleted
     if (employer.deleted) {
       throw new UnauthorizedError('Account deactivated');
+    }
+    // Check if status is not active
+    if (employer.status !== 'active') {
+      throw new UnauthorizedError('Account not active. Please confirm your email.');
     }
 
     // Check password
@@ -287,7 +260,8 @@ const unifiedLogin = async (req: any, res: any, next: any) => {
     // Try to find the user in JobSeeker table
     user = await JobSeeker.findOne({ where: { email } });
     if (user) {
-      if (user.deleted) throw new UnauthorizedError('Account deactivated');
+      if (user.deleted) throw new UnauthorizedError('Account deleted');
+      if (user.status !== 'active') throw new UnauthorizedError('Account not active. Please confirm your email.');
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) throw new UnauthorizedError('Invalid credentials with password');
       role = 'JobSeeker';
@@ -297,7 +271,8 @@ const unifiedLogin = async (req: any, res: any, next: any) => {
     if (!user) {
       user = await Employer.findOne({ where: { email } });
       if (user) {
-        if (user.deleted) throw new UnauthorizedError('Account deactivated');
+        if (user.deleted) throw new UnauthorizedError('Account deleted');
+        if (user.status !== 'active') throw new UnauthorizedError('Account not active. Please confirm your email.');
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) throw new UnauthorizedError('Invalid credentials with email');
         role = 'Employer';
@@ -732,7 +707,7 @@ const confirmEmailRequest = async (req: any, res: any, next: any) => {
     // Generate and save confirmation token
     const confirmToken = crypto.randomBytes(32).toString("hex");
     user.email_confirm_token = confirmToken;
-    user.email_confirm_token_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiry
+    user.email_confirm_token_expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // one week expiry
     user.status = "pending";
     await user.save();
 
@@ -891,7 +866,43 @@ export const verifyEmailChange = async (req, res, next) => {
   }
 };
 
-
+// Toggle user status (active <-> blocked) by email
+const toggleUserStatus = async (req: any, res: any, next: any) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+    // Use model references as any to avoid type errors
+    const EmployerModel = db["Employer"] as any;
+    const JobSeekerModel = db["JobSeeker"] as any;
+    let user = await EmployerModel.findOne({ where: { email } });
+    let role = null;
+    if (user) {
+      role = "employer";
+    } else {
+      user = await JobSeekerModel.findOne({ where: { email } });
+      if (user) {
+        role = "jobSeeker";
+      }
+    }
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const pastStatus = user.status;
+    let newStatus = "active";
+    if (pastStatus === "active") {
+      newStatus = "blocked";
+    } else if (pastStatus === "blocked") {
+      newStatus = "active";
+    }
+    user.status = newStatus;
+    await user.save();
+    res.status(200).json({ success: true, message: `User status updated to '${newStatus}' from '${pastStatus}' as ${role}` });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export default {
   registerJobSeeker,
@@ -909,6 +920,6 @@ export default {
   requestEmailChangeLink,
   verifyEmailChange,
   confirmEmailRequest,
-  confirmEmail
-  ,toggleUserStatus
+  confirmEmail,
+  toggleUserStatus
 };
