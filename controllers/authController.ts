@@ -464,7 +464,7 @@ const updateEmployer = async (req: any, res: any, next: any) => {
     Object.assign(employer, otherData);
     await employer.save();
 
-        // 🔹 Upload avatar if present
+    // 🔹 Upload avatar if present
     if (req.file) {
       const imageName = req.file.key.replace(/^uploaded\//, '');
       await ImagePath.create({
@@ -566,7 +566,8 @@ const requestPasswordReset = async (req: any, res: any, next: any) => {
       }
     }
     if (!user) {
-      return res.status(404).json({ success: false, message: "Email not found" });
+      // return res.status(404).json({ success: true, message: "Email not found" });
+      return res.status(200).json({ success: true, message: "Reset email sent!" });
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -668,6 +669,130 @@ const resetPassword = async (req: any, res: any, next: any) => {
   }
 };
 
+const confirmEmailRequest = async (req: any, res: any, next: any) => {
+  try {
+    const { email } = req.body;
+
+    // Use model references as any to avoid type errors
+    const EmployerModel = db["Employer"] as any;
+    const JobSeekerModel = db["JobSeeker"] as any;
+
+    let user = await EmployerModel.findOne({ where: { email } });
+    let role = null;
+    if (user) {
+      role = "employer";
+    } else {
+      user = await JobSeekerModel.findOne({ where: { email } });
+      if (user) {
+        role = "jobSeeker";
+      }
+    }
+    if (!user) {
+      // For security, always return success
+      return res.status(200).json({ success: true, message: "Confirmation email sent!" });
+    }
+
+    // Generate and save confirmation token
+    const confirmToken = crypto.randomBytes(32).toString("hex");
+    user.email_confirm_token = confirmToken;
+    user.email_confirm_token_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiry
+    user.status = "pending";
+    await user.save();
+
+    const smtpPort = parseInt(process.env.SMTP_PORT || "587");
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: smtpPort,
+      secure: false, // Change to `true` if using port 465
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    transporter.verify((error, success) => {
+      if (error) {
+        console.error("SMTP Connection Failed:", error);
+      } else {
+        console.log("SMTP Connection Successful!");
+      }
+    });
+
+    const confirmLink = `https://reuse-tenshoku.com/confirm-email?token=${confirmToken}&role=${role}`;
+
+    await transporter.sendMail({
+      from: `"Reuse-tenshoku" <your-email@gmail.com>`,
+      to: email,
+      subject: "【リユース転職】メールアドレス確認のご案内",
+      text:
+        `
+こんにちは。リユース転職運営事務局です。
+リユース転職をご利用いただきありがとうございます。
+
+ご本人様確認のため、下記URLへ「24時間以内」にアクセスし
+「メールアドレス確認」を完了してください。
+${confirmLink}
+
+※当メール送信後、24時間を超過しますと、セキュリティ保持のため有効期限切れとなります。
+　その場合は再度、最初からお手続きをお願い致します。
+
+※お使いのメールソフトによってはURLが途中で改行されることがあります。
+　その場合は、URLの先頭から末尾の英数字までをブラウザに
+　直接コピー＆ペーストしてアクセスしてください。
+
+※当メールは送信専用メールアドレスから配信されています。
+　このままご返信いただいてもお答えできませんのでご了承ください。
+
+※当メールに心当たりの無い場合は、誠に恐れ入りますが
+　破棄して頂けますよう、よろしくお願い致します。
+
+----------------------------------------------------------
+
+その他ご不明な点・ご質問などございましたら、リユース転職運営事務局までお問い合わせください。
+※本メールは、ご登録いただいたメールアドレス宛に自動的にお送りしています。
+身に覚えのない場合には下記までお問い合わせください。
+
+■ リユース転職へのお問い合わせ
+https://reuse-tenshoku.com/CONTACT
+=====================================
+
+リユース・リサイクル・買取業界専門の転職サービス リユース転職
+HP：https://reuse-tenshoku.com/job-openings/
+
+`,
+    });
+
+    res.status(200).json({ success: true, message: "Confirmation email sent!" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const confirmEmail = async (req: any, res: any, next: any) => {
+  try {
+    const { token, role } = req.body;
+
+    const Model = role === "employer" ? Employer : JobSeeker;
+    const user = await Model.findOne({
+      where: { email_confirm_token: token, email_confirm_token_expiry: { [Op.gt]: new Date() } },
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid or expired token" });
+    }
+
+    user.status = "active";
+    user.email_confirm_token = null;
+    user.email_confirm_token_expiry = null;
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Email confirmed successfully!" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 import jwt from "jsonwebtoken";
 
 export const requestEmailChangeLink = async (req, res, next) => {
@@ -712,7 +837,7 @@ export const verifyEmailChange = async (req, res, next) => {
     const { token } = req.query;
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const { userId, newEmail, role } = payload;    
+    const { userId, newEmail, role } = payload;
     const Model = role === "employer" ? Employer : JobSeeker;
     const user = await Model.findByPk(userId);
 
@@ -730,6 +855,7 @@ export const verifyEmailChange = async (req, res, next) => {
 };
 
 
+
 export default {
   registerJobSeeker,
   registerEmployer,
@@ -744,5 +870,7 @@ export default {
   requestPasswordReset,
   resetPassword,
   requestEmailChangeLink,
-  verifyEmailChange
+  verifyEmailChange,
+  confirmEmailRequest,
+  confirmEmail
 };
