@@ -1,3 +1,4 @@
+import { check } from 'express-validator';
 import express from 'express';
 const router = express.Router();
 
@@ -36,4 +37,9 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/change-email-request', verifyToken, authController.requestEmailChangeLink);
 router.get('/verify-email-change', authController.verifyEmailChange);
 
+// ✅ Check Email Routes
+router.post('/confirm-email-request', authController.confirmEmailRequest);
+router.get('/confirm-email', authController.confirmEmail);
+// ✅ Toggle User Status
+router.post('/toggle-user-status', verifyToken, isAdmin, authController.toggleUserStatus);
 export default router;

@@ -5,6 +5,43 @@ const { Admin, Employer, JobSeeker, ImagePath } = db;
 import { Op } from "sequelize";
 
 import errorTypes from '../utils/errorTypes';
+// Toggle user status (active <-> blocked) by email
+export const toggleUserStatus = async (req: any, res: any, next: any) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+    // Use model references as any to avoid type errors
+    const EmployerModel = db["Employer"] as any;
+    const JobSeekerModel = db["JobSeeker"] as any;
+    let user = await EmployerModel.findOne({ where: { email } });
+    let role = null;
+    if (user) {
+      role = "employer";
+    } else {
+      user = await JobSeekerModel.findOne({ where: { email } });
+      if (user) {
+        role = "jobSeeker";
+      }
+    }
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const pastStatus = user.status;
+    let newStatus = "active";
+    if (pastStatus === "active") {
+      newStatus = "blocked";
+    } else if (pastStatus === "blocked") {
+      newStatus = "active";
+    }
+    user.status = newStatus;
+    await user.save();
+    res.status(200).json({ success: true, message: `User status updated to '${newStatus}' from '${pastStatus}' as ${role}` });
+  } catch (error) {
+    next(error);
+  }
+};
 const { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } = errorTypes;
 
 import dotenv from 'dotenv';
@@ -873,4 +910,5 @@ export default {
   verifyEmailChange,
   confirmEmailRequest,
   confirmEmail
+  ,toggleUserStatus
 };
