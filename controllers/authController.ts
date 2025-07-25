@@ -60,16 +60,34 @@ const registerJobSeeker = async (req: any, res: any, next: any) => {
       ...otherData
     });
 
-    // Generate JWT token
-    const token = generateToken(jobSeeker, 'jobSeeker');
+    // Generate and save confirmation token
+    const confirmToken = require('crypto').randomBytes(32).toString('hex');
+    jobSeeker.email_confirm_token = confirmToken;
+    jobSeeker.email_confirm_token_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiry
+    await jobSeeker.save();
 
-    // Return response
+    // Send confirmation email
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+    const transporter = require('nodemailer').createTransport({
+      host: process.env.SMTP_HOST,
+      port: smtpPort,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    const confirmLink = `https://reuse-tenshoku.com/confirm-email?token=${confirmToken}&role=jobSeeker`;
+    await transporter.sendMail({
+      from: '"Reuse-tenshoku" <your-email@gmail.com>',
+      to: email,
+      subject: '【リユース転職】メールアドレス確認のご案内',
+      text: `\nこんにちは。リユース転職運営事務局です。\nリユース転職をご利用いただきありがとうございます。\n\nご本人様確認のため、下記URLへ「24時間以内」にアクセスし「メールアドレス確認」を完了してください。\n${confirmLink}\n\n※当メール送信後、24時間を超過しますと、セキュリティ保持のため有効期限切れとなります。\nその場合は再度、最初からお手続きをお願い致します。\n\n※お使いのメールソフトによってはURLが途中で改行されることがあります。\nその場合は、URLの先頭から末尾の英数字までをブラウザに直接コピー＆ペーストしてアクセスしてください。\n\n※当メールは送信専用メールアドレスから配信されています。\nこのままご返信いただいてもお答えできませんのでご了承ください。\n\n※当メールに心当たりの無い場合は、誠に恐れ入りますが破棄して頂けますよう、よろしくお願い致します。\n----------------------------------------------------------\nその他ご不明な点・ご質問などございましたら、リユース転職運営事務局までお問い合わせください。\n※本メールは、ご登録いただいたメールアドレス宛に自動的にお送りしています。\n身に覚えのない場合には下記までお問い合わせください。\n■ リユース転職へのお問い合わせ\nhttps://reuse-tenshoku.com/CONTACT\n=====================================\nリユース・リサイクル・買取業界専門の転職サービス リユース転職\nHP：https://reuse-tenshoku.com/job-openings/\n`,
+    });
+
     res.status(201).json({
       success: true,
-      data: {
-        user: jobSeeker.toJSON(),
-        token
-      }
+      message: 'Registration successful. Please check your email to confirm your account.',
     });
   } catch (error) {
     next(error);
@@ -106,16 +124,34 @@ const registerEmployer = async (req: any, res: any, next: any) => {
       ...otherData
     });
 
-    // Generate JWT token
-    const token = generateToken(employer, 'employer');
+    // Generate and save confirmation token
+    const confirmToken = require('crypto').randomBytes(32).toString('hex');
+    employer.email_confirm_token = confirmToken;
+    employer.email_confirm_token_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiry
+    await employer.save();
 
-    // Return response
+    // Send confirmation email
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+    const transporter = require('nodemailer').createTransport({
+      host: process.env.SMTP_HOST,
+      port: smtpPort,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    const confirmLink = `https://reuse-tenshoku.com/confirm-email?token=${confirmToken}&role=employer`;
+    await transporter.sendMail({
+      from: '"Reuse-tenshoku" <your-email@gmail.com>',
+      to: email,
+      subject: '【リユース転職】メールアドレス確認のご案内',
+      text: `\nこんにちは。リユース転職運営事務局です。\nリユース転職をご利用いただきありがとうございます。\n\nご本人様確認のため、下記URLへ「24時間以内」にアクセスし「メールアドレス確認」を完了してください。\n${confirmLink}\n\n※当メール送信後、24時間を超過しますと、セキュリティ保持のため有効期限切れとなります。\nその場合は再度、最初からお手続きをお願い致します。\n\n※お使いのメールソフトによってはURLが途中で改行されることがあります。\nその場合は、URLの先頭から末尾の英数字までをブラウザに直接コピー＆ペーストしてアクセスしてください。\n\n※当メールは送信専用メールアドレスから配信されています。\nこのままご返信いただいてもお答えできませんのでご了承ください。\n\n※当メールに心当たりの無い場合は、誠に恐れ入りますが破棄して頂けますよう、よろしくお願い致します。\n----------------------------------------------------------\nその他ご不明な点・ご質問などございましたら、リユース転職運営事務局までお問い合わせください。\n※本メールは、ご登録いただいたメールアドレス宛に自動的にお送りしています。\n身に覚えのない場合には下記までお問い合わせください。\n■ リユース転職へのお問い合わせ\nhttps://reuse-tenshoku.com/CONTACT\n=====================================\nリユース・リサイクル・買取業界専門の転職サービス リユース転職\nHP：https://reuse-tenshoku.com/job-openings/\n`,
+    });
+
     res.status(201).json({
       success: true,
-      data: {
-        user: employer.toJSON(),
-        token
-      }
+      message: 'Registration successful. Please check your email to confirm your account.',
     });
   } catch (error) {
     next(error);
@@ -798,7 +834,19 @@ const confirmEmail = async (req: any, res: any, next: any) => {
     user.email_confirm_token_expiry = null;
     await user.save();
 
-    res.status(200).json({ success: true, message: "Email confirmed successfully!" });
+    // Generate JWT token for the user
+    const jwtRole = role === "employer" ? "employer" : "jobseeker";
+    const tokenJwt = generateToken(user, jwtRole);
+
+    res.status(200).json({
+      success: true,
+      message: "Email confirmed and logged in successfully!",
+      data: {
+        role: jwtRole.charAt(0).toUpperCase() + jwtRole.slice(1),
+        user: user.toJSON(),
+        token: tokenJwt
+      }
+    });
   } catch (error) {
     next(error);
   }

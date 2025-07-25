@@ -9,8 +9,9 @@ router.post('/file', verifyToken, uploadChatFile.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
 
   const filePath = (req.file as any).location;
-  const fileName = req.file.originalname;
-
+  const fileName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+  console.log(filePath, fileName);
+  // console.log("buffer name:", Buffer.from(req.file.originalname));
   res.json({ success: true, filePath, fileName });
 });
 
