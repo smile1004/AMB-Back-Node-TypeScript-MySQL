@@ -85,8 +85,35 @@ const getCareerConsultationById = async (req: any, res: any, next: any) => {
 const createCareerConsultation = async (req: any, res: any, next: any) => {
   try {
     const { title, description } = req.body;
-
+    const { email } = req.body;
     const careerConsultation = await CareerConsultation.create(req.body);
+
+
+    // Send confirmation email
+    try {
+      const nodemailer = require('nodemailer');
+      const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: smtpPort,
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+      const subject = '転職支援サービスへのお申し込みありがとうございます';
+      const text = `\nこの度はお申込みいただき誠にありがとうございます。\n\n【受付確認】\nご入力いただいた内容で受付いたしました。\n\n【今後の流れ】\n担当者より改めてご連絡させていただきますので、今しばらくお待ちください。\n\n【お問い合わせ先】\nご不明点等ございましたら、下記までご連絡ください。\nリユース転職運営事務局\nhttps://reuse-tenshoku.com/CONTACT\n\n今後ともどうぞよろしくお願いいたします。\n`;
+      await transporter.sendMail({
+        from: '"Reuse-tenshoku" <your-email@gmail.com>',
+        to: email,
+        subject,
+        text,
+      });
+    } catch (mailErr) {
+      // Log but do not block response
+      console.error('Failed to send career consultation confirmation email:', mailErr);
+    }
 
     res.status(201).json({
       success: true,
