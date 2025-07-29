@@ -67,6 +67,7 @@ export default (sequelize: any, DataTypes: any) => {
     email_confirm_token: { type: DataTypes.STRING, allowNull: true },
     email_confirm_token_expiry: { type: DataTypes.DATE, allowNull: true },
     status: { type: DataTypes.STRING, allowNull: true },
+    service_content: { type: DataTypes.INTEGER, allowNull: true },
     deleted: {
       type: DataTypes.DATE,
       comment: 'deleted'

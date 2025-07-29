@@ -102,7 +102,7 @@ const createCompanyApplication = async (req: any, res: any, next: any) => {
         },
       });
       const subject = '企業ご担当者様お申込みありがとうございます';
-      const text = `\nこの度はお申込みいただき誠にありがとうございます。\n\n【受付確認】\nご入力いただいた内容で受付いたしました。\n\n【今後の流れ】\n担当者より改めてご連絡させていただきますので、今しばらくお待ちください。\n\n【お問い合わせ先】\nご不明点等ございましたら、下記までご連絡ください。\nリユース転職運営事務局\nhttps://reuse-tenshoku.com/CONTACT\n\n今後ともどうぞよろしくお願いいたします。\n`;
+      const text = `\nこの度はお申込みいただき誠にありがとうございます。\n\n【受付確認】\nご入力いただいた内容で受付いたしました。\n\n【今後の流れ】\n担当者より改めてご連絡させていただきますので、今しばらくお待ちください。\n\n【お問い合わせ先】\nご不明点等ございましたら、下記までご連絡ください。\nリユース転職運営事務局\nhttps://amb-work.vercel.app/CONTACT\n\n今後ともどうぞよろしくお願いいたします。\n`;
       await transporter.sendMail({
         from: '"Reuse-tenshoku" <your-email@gmail.com>',
         to: email,

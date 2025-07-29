@@ -82,7 +82,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     const {
       page = 1,
       limit = 10,
-      agency,
+      // agency,
       employmentTypeId,
       employer_id,
       features,
@@ -103,7 +103,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     if (companyID) whereCondition.employer_id = companyID;
     if (jobType && jobType != "0") whereCondition.job_detail_page_template_id = jobType;
     if (employer_id) whereCondition.employer_id = employer_id;
-    if (agency) whereCondition.job_detail_page_template_id = agency;
+    // if (agency) whereCondition.job_detail_page_template_id = agency;
     if (public_status) whereCondition.public_status = public_status;
     if (searchTerm) {
       const prefectureId = prefectureNameToIdJP[searchTerm.trim()];

@@ -77,12 +77,12 @@ const registerJobSeeker = async (req: any, res: any, next: any) => {
         pass: process.env.SMTP_PASS,
       },
     });
-    const confirmLink = `https://reuse-tenshoku.com/confirm-email?token=${confirmToken}&role=jobSeeker`;
+    const confirmLink = `https://amb-work.vercel.app/confirm-email?token=${confirmToken}&role=jobSeeker`;
     await transporter.sendMail({
       from: '"Reuse-tenshoku" <your-email@gmail.com>',
       to: email,
       subject: '【リユース転職】メールアドレス確認のご案内',
-      text: `\nこんにちは。リユース転職運営事務局です。\nリユース転職をご利用いただきありがとうございます。\n\nご本人様確認のため、下記URLへ「24時間以内」にアクセスし「メールアドレス確認」を完了してください。\n${confirmLink}\n\n※当メール送信後、24時間を超過しますと、セキュリティ保持のため有効期限切れとなります。\nその場合は再度、最初からお手続きをお願い致します。\n\n※お使いのメールソフトによってはURLが途中で改行されることがあります。\nその場合は、URLの先頭から末尾の英数字までをブラウザに直接コピー＆ペーストしてアクセスしてください。\n\n※当メールは送信専用メールアドレスから配信されています。\nこのままご返信いただいてもお答えできませんのでご了承ください。\n\n※当メールに心当たりの無い場合は、誠に恐れ入りますが破棄して頂けますよう、よろしくお願い致します。\n----------------------------------------------------------\nその他ご不明な点・ご質問などございましたら、リユース転職運営事務局までお問い合わせください。\n※本メールは、ご登録いただいたメールアドレス宛に自動的にお送りしています。\n身に覚えのない場合には下記までお問い合わせください。\n■ リユース転職へのお問い合わせ\nhttps://reuse-tenshoku.com/CONTACT\n=====================================\nリユース・リサイクル・買取業界専門の転職サービス リユース転職\nHP：https://reuse-tenshoku.com/job-openings/\n`,
+      text: `\nこんにちは。リユース転職運営事務局です。\nリユース転職をご利用いただきありがとうございます。\n\nご本人様確認のため、下記URLへ「24時間以内」にアクセスし「メールアドレス確認」を完了してください。\n${confirmLink}\n\n※当メール送信後、24時間を超過しますと、セキュリティ保持のため有効期限切れとなります。\nその場合は再度、最初からお手続きをお願い致します。\n\n※お使いのメールソフトによってはURLが途中で改行されることがあります。\nその場合は、URLの先頭から末尾の英数字までをブラウザに直接コピー＆ペーストしてアクセスしてください。\n\n※当メールは送信専用メールアドレスから配信されています。\nこのままご返信いただいてもお答えできませんのでご了承ください。\n\n※当メールに心当たりの無い場合は、誠に恐れ入りますが破棄して頂けますよう、よろしくお願い致します。\n----------------------------------------------------------\nその他ご不明な点・ご質問などございましたら、リユース転職運営事務局までお問い合わせください。\n※本メールは、ご登録いただいたメールアドレス宛に自動的にお送りしています。\n身に覚えのない場合には下記までお問い合わせください。\n■ リユース転職へのお問い合わせ\nhttps://amb-work.vercel.app/CONTACT\n=====================================\nリユース・リサイクル・買取業界専門の転職サービス リユース転職\nHP：https://amb-work.vercel.app/job-openings/\n`,
     });
 
     res.status(201).json({
@@ -141,12 +141,12 @@ const registerEmployer = async (req: any, res: any, next: any) => {
         pass: process.env.SMTP_PASS,
       },
     });
-    const confirmLink = `https://reuse-tenshoku.com/confirm-email?token=${confirmToken}&role=employer`;
+    const confirmLink = `https://amb-work.vercel.app/confirm-email?token=${confirmToken}&role=employer`;
     await transporter.sendMail({
       from: '"Reuse-tenshoku" <your-email@gmail.com>',
       to: email,
       subject: '【リユース転職】メールアドレス確認のご案内',
-      text: `\nこんにちは。リユース転職運営事務局です。\nリユース転職をご利用いただきありがとうございます。\n\nご本人様確認のため、下記URLへ「24時間以内」にアクセスし「メールアドレス確認」を完了してください。\n${confirmLink}\n\n※当メール送信後、24時間を超過しますと、セキュリティ保持のため有効期限切れとなります。\nその場合は再度、最初からお手続きをお願い致します。\n\n※お使いのメールソフトによってはURLが途中で改行されることがあります。\nその場合は、URLの先頭から末尾の英数字までをブラウザに直接コピー＆ペーストしてアクセスしてください。\n\n※当メールは送信専用メールアドレスから配信されています。\nこのままご返信いただいてもお答えできませんのでご了承ください。\n\n※当メールに心当たりの無い場合は、誠に恐れ入りますが破棄して頂けますよう、よろしくお願い致します。\n----------------------------------------------------------\nその他ご不明な点・ご質問などございましたら、リユース転職運営事務局までお問い合わせください。\n※本メールは、ご登録いただいたメールアドレス宛に自動的にお送りしています。\n身に覚えのない場合には下記までお問い合わせください。\n■ リユース転職へのお問い合わせ\nhttps://reuse-tenshoku.com/CONTACT\n=====================================\nリユース・リサイクル・買取業界専門の転職サービス リユース転職\nHP：https://reuse-tenshoku.com/job-openings/\n`,
+      text: `\nこんにちは。リユース転職運営事務局です。\nリユース転職をご利用いただきありがとうございます。\n\nご本人様確認のため、下記URLへ「24時間以内」にアクセスし「メールアドレス確認」を完了してください。\n${confirmLink}\n\n※当メール送信後、24時間を超過しますと、セキュリティ保持のため有効期限切れとなります。\nその場合は再度、最初からお手続きをお願い致します。\n\n※お使いのメールソフトによってはURLが途中で改行されることがあります。\nその場合は、URLの先頭から末尾の英数字までをブラウザに直接コピー＆ペーストしてアクセスしてください。\n\n※当メールは送信専用メールアドレスから配信されています。\nこのままご返信いただいてもお答えできませんのでご了承ください。\n\n※当メールに心当たりの無い場合は、誠に恐れ入りますが破棄して頂けますよう、よろしくお願い致します。\n----------------------------------------------------------\nその他ご不明な点・ご質問などございましたら、リユース転職運営事務局までお問い合わせください。\n※本メールは、ご登録いただいたメールアドレス宛に自動的にお送りしています。\n身に覚えのない場合には下記までお問い合わせください。\n■ リユース転職へのお問い合わせ\nhttps://amb-work.vercel.app/CONTACT\n=====================================\nリユース・リサイクル・買取業界専門の転職サービス リユース転職\nHP：https://amb-work.vercel.app/job-openings/\n`,
     });
 
     res.status(201).json({
@@ -642,7 +642,7 @@ const requestPasswordReset = async (req: any, res: any, next: any) => {
       }
     });
 
-    const resetLink = `https://reuse-tenshoku.com/reset-password?token=${resetToken}&role=${role}`;
+    const resetLink = `https://amb-work.vercel.app/reset-password?token=${resetToken}&role=${role}`;
 
     await transporter.sendMail({
       from: `"Reuse-tenshoku" <your-email@gmail.com>`,
@@ -678,11 +678,11 @@ ${resetLink}
 身に覚えのない場合には下記までお問い合わせください。
 
 ■ リユース転職へのお問い合わせ
-https://reuse-tenshoku.com/CONTACT
+https://amb-work.vercel.app/CONTACT
 =====================================
 
 リユース・リサイクル・買取業界専門の転職サービス リユース転職
-HP：https://reuse-tenshoku.com/job-openings/
+HP：https://amb-work.vercel.app/job-openings/
 
 `,
     });
@@ -766,7 +766,7 @@ const confirmEmailRequest = async (req: any, res: any, next: any) => {
       }
     });
 
-    const confirmLink = `https://reuse-tenshoku.com/confirm-email?token=${confirmToken}&role=${role}`;
+    const confirmLink = `https://amb-work.vercel.app/confirm-email?token=${confirmToken}&role=${role}`;
 
     await transporter.sendMail({
       from: `"Reuse-tenshoku" <your-email@gmail.com>`,
@@ -801,11 +801,11 @@ ${confirmLink}
 身に覚えのない場合には下記までお問い合わせください。
 
 ■ リユース転職へのお問い合わせ
-https://reuse-tenshoku.com/CONTACT
+https://amb-work.vercel.app/CONTACT
 =====================================
 
 リユース・リサイクル・買取業界専門の転職サービス リユース転職
-HP：https://reuse-tenshoku.com/job-openings/
+HP：https://amb-work.vercel.app/job-openings/
 
 `,
     });
