@@ -85,7 +85,7 @@ const getCareerConsultationById = async (req: any, res: any, next: any) => {
 const createCareerConsultation = async (req: any, res: any, next: any) => {
   try {
     const { title, description } = req.body;
-    const { email } = req.body;
+    const { email, name, request } = req.body;
     const careerConsultation = await CareerConsultation.create(req.body);
 
 
@@ -110,6 +110,16 @@ const createCareerConsultation = async (req: any, res: any, next: any) => {
         subject,
         text,
       });
+
+      const adminsubject = `${name}さんからお問い合わせがありました。`;
+      const admintext = `\nご入力内容\n\nお名前：${name}\nメールアドレス：${email}\nお問い合わせ内容${request}\n`;
+      await transporter.sendMail({
+        from: '"Reuse-tenshoku" <your-email@gmail.com>',
+        to: "admin@example.com",
+        adminsubject,
+        admintext,
+      });
+
     } catch (mailErr) {
       // Log but do not block response
       console.error('Failed to send career consultation confirmation email:', mailErr);

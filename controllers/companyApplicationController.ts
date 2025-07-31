@@ -85,7 +85,7 @@ const getCompanyApplicationById = async (req: any, res: any, next: any) => {
  */
 const createCompanyApplication = async (req: any, res: any, next: any) => {
   try {
-    const { email } = req.body;
+    const {name, email, inquiry } = req.body;
     const companyApplication = await CompanyApplication.create(req.body);
 
     // Send confirmation email
@@ -109,6 +109,16 @@ const createCompanyApplication = async (req: any, res: any, next: any) => {
         subject,
         text,
       });
+
+      const adminsubject = `${name}さんからお問い合わせがありました。`;
+      const admintext = `\nご入力内容\n\nお名前：${name}\nメールアドレス：${email}\nお問い合わせ内容${inquiry}\n`;
+      await transporter.sendMail({
+        from: '"Reuse-tenshoku" <your-email@gmail.com>',
+        to: "admin@example.com",
+        subject: adminsubject,
+        text: admintext,
+      });
+
     } catch (mailErr) {
       // Log but do not block response
       console.error('Failed to send company application confirmation email:', mailErr);
