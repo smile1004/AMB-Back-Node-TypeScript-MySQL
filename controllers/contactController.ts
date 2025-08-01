@@ -89,46 +89,54 @@ const createContact = async (req: any, res: any, next: any) => {
 
     const contact = await Contact.create(req.body);
 
-    // Send confirmation email
-    try {
-      const nodemailer = require('nodemailer');
-      const smtpPort = parseInt(process.env.SMTP_PORT || '587');
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: smtpPort,
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-      const subject = 'お問い合わせありがとうございます';
-      const text = `\nこの度はお問い合わせいただき誠にありがとうございます。\n\n【受付確認】\nご入力いただいた内容で受付いたしました。\n\n【今後の流れ】\n担当者より改めてご連絡させていただきますので、今しばらくお待ちください。\n`;
-      await transporter.sendMail({
-        from: '"Reuse-tenshoku" <your-email@gmail.com>',
-        to: email,
-        subject,
-        text,
-      });
-
-      const adminsubject = `${name}さんからお問い合わせがありました。`;
-      const admintext = `\nご入力内容\n\nお名前：${name}\nメールアドレス：${email}\nお問い合わせ内容${inquiry_detail}\n`;
-      await transporter.sendMail({
-        from: '"Reuse-tenshoku" <your-email@gmail.com>',
-        to: "admin@example.com",
-        adminsubject,
-        admintext,
-      });
-
-    } catch (mailErr) {
-      // Log but do not block response
-      console.error('Failed to send career consultation confirmation email:', mailErr);
-    }
-
+    // Send success response immediately
     res.status(201).json({
       success: true,
       data: contact
     });
+
+    // Send emails asynchronously in the background
+    setImmediate(async () => {
+      try {
+        const nodemailer = require('nodemailer');
+        const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: smtpPort,
+          secure: false,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+
+        const subject = 'お問い合わせありがとうございます';
+        const text = `\nこの度はお問い合わせいただき誠にありがとうございます。\n\n【受付確認】\nご入力いただいた内容で受付いたしました。\n\n【今後の流れ】\n担当者より改めてご連絡させていただきますので、今しばらくお待ちください。\n`;
+
+        await transporter.sendMail({
+          from: '"Reuse-tenshoku" <your-email@gmail.com>',
+          to: email,
+          subject,
+          text,
+        });
+
+        const adminsubject = `${name}さんからお問い合わせがありました。`;
+        const admintext = `\nご入力内容\n\nお名前：${name}\nメールアドレス：${email}\nお問い合わせ内容${inquiry_detail}\n`;
+
+        await transporter.sendMail({
+          from: '"Reuse-tenshoku" <your-email@gmail.com>',
+          to: "admin@example.com",
+          subject: adminsubject,
+          text: admintext,
+        });
+
+        console.log('Contact emails sent successfully');
+      } catch (mailErr) {
+        // Log but do not affect the main response
+        console.error('Failed to send contact confirmation email:', mailErr);
+      }
+    });
+
   } catch (error) {
     next(error);
   }
