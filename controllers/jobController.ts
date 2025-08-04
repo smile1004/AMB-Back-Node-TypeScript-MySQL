@@ -77,12 +77,12 @@ const prefectureNameToIdJP: Record<string, number> = {
   "鹿児島県": 46,
   "沖縄県": 47
 };
+
 const getAllJobs = async (req: any, res: any, next: any) => {
   try {
     const {
       page = 1,
       limit = 10,
-      // agency,
       employmentTypeId,
       employer_id,
       features,
@@ -92,19 +92,18 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       public_status,
       isAdmin = "0",
       jobType = "0",
-      sortBy = "created",
-      sortOrder = "DESC",
     } = req.query;
 
     const offset = (page - 1) * limit;
     const whereCondition: any = { deleted: null };
+
     if (isAdmin == "0") whereCondition.public_status = 1;
     if (employmentTypeId) whereCondition.employment_type_id = employmentTypeId;
     if (companyID) whereCondition.employer_id = companyID;
     if (jobType && jobType != "0") whereCondition.job_detail_page_template_id = jobType;
     if (employer_id) whereCondition.employer_id = employer_id;
-    // if (agency) whereCondition.job_detail_page_template_id = agency;
     if (public_status) whereCondition.public_status = public_status;
+
     if (searchTerm) {
       const prefectureId = prefectureNameToIdJP[searchTerm.trim()];
       whereCondition[Op.or] = [
@@ -136,7 +135,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
         as: 'jobThumbnails',
         where: { posting_category: 11 },
         attributes: ["entity_path", "image_name"],
-        required: false
+        required: false,
       },
       {
         model: Feature,
@@ -184,7 +183,6 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     const allJobs = await JobInfo.findAll({
       where: whereCondition,
       include: includeOptions,
-      order: [[sortBy, sortOrder]],
       attributes: {
         include: [
           [Sequelize.literal(`(SELECT COALESCE(SUM(search_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'search_count'],
@@ -198,21 +196,23 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     const count = allJobs.length;
     const totalPages = Math.ceil(count / limit);
 
-    // Highlight: Sort all filtered jobs by recommend_score if jobseeker
-    let jobs = allJobs;
-    if (req.user?.id && req.user?.role === 'jobseeker') {
-      jobs = await Promise.all(jobs.map(async (job) => {
-        const [analytic, applicationCount] = await Promise.all([
-          JobAnalytic.findOne({ where: { job_info_id: job.id } }),
-          ApplicationHistory.count({ where: { job_info_id: job.id } }),
-        ]);
-        const search = analytic?.search_count || 0;
-        const recruits = analytic?.recruits_count || 0;
-        const recommend_score = search * 0.3 + recruits * 0.3 + applicationCount * 4;
-        return { ...job.get(), recommend_score };
-      }));
-      jobs.sort((a, b) => b.recommend_score - a.recommend_score);
-    }
+    let jobs = allJobs.map((job) => {
+      const search = Number(job.get("search_count") || 0);
+      const recruits = Number(job.get("recruits_count") || 0);
+      const application_count = Number(job.get("application_count") || 0);
+      const recommend_score = search * 0.3 + recruits * 0.3 + application_count * 0.4;
+
+      return {
+        ...job.get(),
+        search_count: search,
+        recruits_count: recruits,
+        application_count,
+        recommend_score,
+      };
+    });
+
+    // Always sort by recommend_score
+    jobs.sort((a, b) => b.recommend_score - a.recommend_score);
 
     const paginatedJobs = jobs.slice(offset, offset + parseInt(limit, 10));
     const recommendedJobs = jobs.slice(0, 5); // top 5 recommended FROM filtered result
@@ -248,6 +248,9 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     next(error);
   }
 };
+
+
+
 
 
 /**
