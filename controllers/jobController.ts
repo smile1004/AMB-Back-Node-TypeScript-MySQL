@@ -92,6 +92,8 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       public_status,
       isAdmin = "0",
       jobType = "0",
+      sortBy = "created",
+      sortOrder = "DESC",
     } = req.query;
 
     const offset = (page - 1) * limit;
@@ -121,13 +123,13 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       }
     }
 
+    // Same includeOptions as your code...
     const includeOptions = [
       {
         model: Employer,
         as: "employer",
         required: true,
         attributes: ["id", "clinic_name", "prefectures", "city", "closest_station"],
-        where: {},
       },
       { model: EmploymentType, as: "employmentType" },
       {
@@ -145,6 +147,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       },
     ];
 
+    // Feature filtering same as your code...
     const featureIds = typeof features === "string" ? JSON.parse(features) : features || [];
     const prefectureIds = typeof prefectures === "string" ? JSON.parse(prefectures) : prefectures || [];
 
@@ -180,23 +183,31 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       }
     }
 
+    // **Important**: Get total count separately for pagination
+    const count = await JobInfo.count({
+      where: whereCondition,
+      include: includeOptions,
+      distinct: true, // to handle joins correctly in count
+    });
+
+    // Fetch paginated jobs sorted by created_at DESC
     const allJobs = await JobInfo.findAll({
       where: whereCondition,
       include: includeOptions,
+      order: [[sortBy, sortOrder]],
+      offset,
+      limit: parseInt(limit, 10),
       attributes: {
         include: [
           [Sequelize.literal(`(SELECT COALESCE(SUM(search_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'search_count'],
           [Sequelize.literal(`(SELECT COALESCE(SUM(recruits_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'recruits_count'],
           [Sequelize.literal(`(SELECT COUNT(*) FROM application_histories AS app WHERE app.job_info_id = JobInfo.id)`), 'application_count'],
-          [Sequelize.literal(`(SELECT COUNT(*) FROM favorite_jobs AS fav WHERE fav.job_info_id = JobInfo.id)`), 'favourite_count'],
-        ]
-      }
+        ],
+      },
     });
 
-    const count = allJobs.length;
-    const totalPages = Math.ceil(count / limit);
-
-    let jobs = allJobs.map((job) => {
+    // Calculate recommend_score for paginated jobs
+    const jobs = allJobs.map(job => {
       const search = Number(job.get("search_count") || 0);
       const recruits = Number(job.get("recruits_count") || 0);
       const application_count = Number(job.get("application_count") || 0);
@@ -211,28 +222,48 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       };
     });
 
-    // Always sort by recommend_score
-    jobs.sort((a, b) => b.recommend_score - a.recommend_score);
+    // Recommended jobs from the **entire** filtered dataset (not paginated)
+    // So fetch all jobs without pagination, just for recommended sorting
+    const allJobsForRecommend = await JobInfo.findAll({
+      where: whereCondition,
+      include: includeOptions,
+      attributes: {
+        include: [
+          [Sequelize.literal(`(SELECT COALESCE(SUM(search_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'search_count'],
+          [Sequelize.literal(`(SELECT COALESCE(SUM(recruits_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'recruits_count'],
+          [Sequelize.literal(`(SELECT COUNT(*) FROM application_histories AS app WHERE app.job_info_id = JobInfo.id)`), 'application_count'],
+        ],
+      },
+    });
 
-    const paginatedJobs = jobs.slice(offset, offset + parseInt(limit, 10));
-    const recommendedJobs = jobs.slice(0, 5); // top 5 recommended FROM filtered result
+    const recommendedJobs = allJobsForRecommend
+      .map(job => {
+        const search = Number(job.get("search_count") || 0);
+        const recruits = Number(job.get("recruits_count") || 0);
+        const application_count = Number(job.get("application_count") || 0);
+        const recommend_score = search * 0.3 + recruits * 0.3 + application_count * 0.4;
+        return { ...job.get(), recommend_score };
+      })
+      .sort((a, b) => b.recommend_score - a.recommend_score)
+      .slice(0, 5);
 
     res.status(200).json({
       success: true,
       data: {
-        jobs: paginatedJobs,
+        jobs,
         recommended: recommendedJobs,
         pagination: {
           total: count,
           page: parseInt(page, 10),
           limit: parseInt(limit, 10),
-          totalPages,
+          totalPages: Math.ceil(count / limit),
         },
       },
     });
 
+    // Update search_count asynchronously for paginated jobs
     try {
-      for (const job of paginatedJobs) {
+      for (const job of jobs) {
         const existing = await JobAnalytic.findOne({ where: { job_info_id: job.id } });
         if (existing) {
           existing.search_count += 1;
@@ -244,6 +275,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     } catch (analyticsError) {
       logger.error("Error updating job analytics:", analyticsError);
     }
+
   } catch (error) {
     next(error);
   }
