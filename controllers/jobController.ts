@@ -106,21 +106,51 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     if (employer_id) whereCondition.employer_id = employer_id;
     if (public_status) whereCondition.public_status = public_status;
 
+    // Add expiry date filtering - exclude expired jobs
+    const currentDate = new Date();
+    // Format current date as YYYYMMDD string to match the database format
+    const currentDateString = currentDate.getFullYear().toString() + 
+                             String(currentDate.getMonth() + 1).padStart(2, '0') + 
+                             String(currentDate.getDate()).padStart(2, '0');
+    
+    // Create expiry date condition - include jobs that:
+    // 1. Have no expiry date (null)
+    // 2. Have empty expiry date ("")
+    // 3. Have expiry date greater than or equal to current date
+    const expiryDateCondition = {
+      [Op.or]: [
+        { clinic_public_date_end: null },
+        { clinic_public_date_end: "" },
+        { clinic_public_date_end: { [Op.gte]: currentDateString } }
+      ]
+    };
+
+    // Combine expiry date condition with existing conditions
+    whereCondition[Op.and] = [
+      ...(whereCondition[Op.and] || []),
+      expiryDateCondition
+    ];
+
     if (searchTerm) {
       const prefectureId = prefectureNameToIdJP[searchTerm.trim()];
-      whereCondition[Op.or] = [
-        { job_title: { [Op.like]: `%${searchTerm}%` } },
-        { job_lead_statement: { [Op.like]: `%${searchTerm}%` } },
-        { short_appeal: { [Op.like]: `%${searchTerm}%` } },
-        Sequelize.where(Sequelize.col("employer.clinic_name"), { [Op.like]: `%${searchTerm}%` }),
-        Sequelize.where(Sequelize.col("employer.city"), { [Op.like]: `%${searchTerm}%` }),
-        Sequelize.where(Sequelize.col("employer.closest_station"), { [Op.like]: `%${searchTerm}%` }),
-      ];
+      const searchCondition = {
+        [Op.or]: [
+          { job_title: { [Op.like]: `%${searchTerm}%` } },
+          { job_lead_statement: { [Op.like]: `%${searchTerm}%` } },
+          { short_appeal: { [Op.like]: `%${searchTerm}%` } },
+          Sequelize.where(Sequelize.col("employer.clinic_name"), { [Op.like]: `%${searchTerm}%` }),
+          Sequelize.where(Sequelize.col("employer.city"), { [Op.like]: `%${searchTerm}%` }),
+          Sequelize.where(Sequelize.col("employer.closest_station"), { [Op.like]: `%${searchTerm}%` }),
+        ]
+      };
+      
       if (prefectureId) {
-        whereCondition[Op.or].push(
+        searchCondition[Op.or].push(
           Sequelize.where(Sequelize.col("employer.prefectures"), { [Op.eq]: prefectureId })
         );
       }
+      
+      whereCondition[Op.and].push(searchCondition);
     }
 
     // Same includeOptions as your code...
@@ -202,6 +232,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
           [Sequelize.literal(`(SELECT COALESCE(SUM(search_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'search_count'],
           [Sequelize.literal(`(SELECT COALESCE(SUM(recruits_count), 0) FROM job_analytics AS ja WHERE ja.job_info_id = JobInfo.id)`), 'recruits_count'],
           [Sequelize.literal(`(SELECT COUNT(*) FROM application_histories AS app WHERE app.job_info_id = JobInfo.id)`), 'application_count'],
+          [Sequelize.literal(`(SELECT COUNT(*) FROM favorite_jobs AS fav WHERE fav.job_info_id = JobInfo.id)`), 'favourite_count'], // 👈 add this line
         ],
       },
     });
@@ -280,10 +311,6 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     next(error);
   }
 };
-
-
-
-
 
 /**
  * Get job by ID

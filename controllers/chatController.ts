@@ -15,12 +15,12 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
 
     // 🔥 Updated where clause based on role and agency
     let chatWhere: any = {};
-
+    console.log(user.role)
     if (user.role === 'admin') {
       chatWhere = { agency: 1 }; // 🔥 Admin sees agency chats only
     } else if (user.role === 'employer') {
       chatWhere = { agency: 0 }; // 🔥 Employer sees non-agency chats only
-    } else if (user.role === 'job_seeker') {
+    } else if (user.role === 'jobseeker') {
       chatWhere = { job_seeker_id: user.id }; // 🔥 Job seeker sees their chats
     }
 
