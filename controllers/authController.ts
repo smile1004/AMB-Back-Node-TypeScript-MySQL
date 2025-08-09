@@ -352,8 +352,6 @@ const unifiedLogin = async (req: any, res: any, next: any) => {
  * Get current user profile
  * @route GET /api/auth/me
  */
-import { Op } from "sequelize";
-import { Admin, Employer, JobSeeker, ImagePath } from "../models";
 
 const getCurrentUser = async (req: any, res: any, next: any) => {
   try {
@@ -852,14 +850,54 @@ const confirmEmail = async (req: any, res: any, next: any) => {
   }
 };
 
-
-import jwt from "jsonwebtoken";
-
 export const requestEmailChangeLink = async (req, res, next) => {
   try {
     const { newEmail } = req.body;
     const userId = req.user.id;
     const role = req.user.role; // ✅ get from logged-in user
+
+    // Validate newEmail format
+    if (!newEmail || typeof newEmail !== 'string' || !newEmail.includes('@')) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "有効なメールアドレスを入力してください。" 
+      });
+    }
+
+    // Check if newEmail already exists for the specified role
+    let existingUser = null;
+    if (role === 'jobseeker') {
+      existingUser = await JobSeeker.findOne({ where: { email: newEmail } });
+    } else if (role === 'employer') {
+      existingUser = await Employer.findOne({ where: { email: newEmail } });
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: "無効なユーザーロールです。" 
+      });
+    }
+
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "このメールアドレスは既に使用されています。" 
+      });
+    }
+
+    // Also check if the newEmail exists in other roles to prevent cross-role conflicts
+    let crossRoleUser = null;
+    if (role === 'jobseeker') {
+      crossRoleUser = await Employer.findOne({ where: { email: newEmail } });
+    } else if (role === 'employer') {
+      crossRoleUser = await JobSeeker.findOne({ where: { email: newEmail } });
+    }
+
+    if (crossRoleUser) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "このメールアドレスは他のアカウントタイプで既に使用されています。" 
+      });
+    }
 
     const token = jwt.sign(
       { newEmail, userId, role },
@@ -867,7 +905,7 @@ export const requestEmailChangeLink = async (req, res, next) => {
       { expiresIn: "90m" } // ✅ 90 minutes
     );
 
-    const verificationUrl = `http://172.20.1.185:3000/api/auth/verify-email-change?token=${token}`;
+    const verificationUrl = `http://api.reuse-tenshoku.com/api/auth/verify-email-change?token=${token}`;
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
