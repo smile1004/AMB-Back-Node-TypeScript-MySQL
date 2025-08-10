@@ -451,10 +451,10 @@ const updateJobSeeker = async (req: any, res: any, next: any) => {
 
     // 🔹 Upload avatar if present
     if (req.file) {
-      const imageName = req.file.key.replace(/^uploaded\//, '');
+      const imageName = req.file.key.replace(/^recruit\//, '');
       await ImagePath.create({
         image_name: imageName,
-        entity_path: `/uploaded/${imageName}`,
+        entity_path: `/recruit/${imageName}`,
         posting_category: 1, // Avatar
         parent_id: jobSeekerId,
       });
@@ -512,10 +512,10 @@ const updateEmployer = async (req: any, res: any, next: any) => {
 
     // 🔹 Upload avatar if present
     if (req.file) {
-      const imageName = req.file.key.replace(/^uploaded\//, '');
+      const imageName = req.file.key.replace(/^recruit\//, '');
       await ImagePath.create({
         image_name: imageName,
-        entity_path: `/uploaded/${imageName}`,
+        entity_path: `/recruit/${imageName}`,
         posting_category: 2, // Avatar
         parent_id: employerId,
       });
@@ -596,7 +596,7 @@ import nodemailer from "nodemailer";
 const requestPasswordReset = async (req: any, res: any, next: any) => {
   try {
     const { email } = req.body;
-
+    console.log(req.body, email);
     // Use model references as any to avoid type errors
     const EmployerModel = db["Employer"] as any;
     const JobSeekerModel = db["JobSeeker"] as any;
@@ -850,8 +850,46 @@ const confirmEmail = async (req: any, res: any, next: any) => {
   }
 };
 
+// export const requestEmailChangeLink = async (req, res, next) => {
+//   try {
+//     const { newEmail } = req.body;
+//     const userId = req.user.id;
+//     const role = req.user.role; // ✅ get from logged-in user
+
+//     const token = jwt.sign(
+//       { newEmail, userId, role },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "90m" } // ✅ 90 minutes
+//     );
+
+//     const verificationUrl = `http://172.20.1.185:3000/api/auth/verify-email-change?token=${token}`;
+
+//     const transporter = nodemailer.createTransport({
+//       host: process.env.SMTP_HOST,
+//       port: parseInt(process.env.SMTP_PORT),
+//       secure: false,
+//       auth: {
+//         user: process.env.SMTP_USER,
+//         pass: process.env.SMTP_PASS,
+//       },
+//     });
+
+//     await transporter.sendMail({
+//       from: `"Reuse-tenshoku" <your-email@gmail.com>`,
+//       to: newEmail,
+//       subject: "【リユース転職】メールアドレス変更確認",
+//       text: `以下のURLをクリックして、メールアドレス変更を完了してください（90分以内に有効）：\n\n${verificationUrl}`,
+//     });
+
+//     res.status(200).json({ success: true, message: "確認リンクを送信しました。" });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 export const requestEmailChangeLink = async (req, res, next) => {
   try {
+    console.log(req.body);
     const { newEmail } = req.body;
     const userId = req.user.id;
     const role = req.user.role; // ✅ get from logged-in user
@@ -919,7 +957,7 @@ export const requestEmailChangeLink = async (req, res, next) => {
 
     await transporter.sendMail({
       from: `"Reuse-tenshoku" <your-email@gmail.com>`,
-      to: req.user.email,
+      to: newEmail,
       subject: "【リユース転職】メールアドレス変更確認",
       text: `以下のURLをクリックして、メールアドレス変更を完了してください（90分以内に有効）：\n\n${verificationUrl}`,
     });
@@ -943,10 +981,11 @@ export const verifyEmailChange = async (req, res, next) => {
       return res.status(404).send("User not found");
     }
 
+    console.log(userId, newEmail, role);
     user.email = newEmail;
     await user.save();
 
-    res.redirect("http://localhost:3003/email-change-success");
+    res.redirect("https://reuse-tenshoku.com/email-change-success");
   } catch (err) {
     res.status(400).send("Invalid or expired token");
   }

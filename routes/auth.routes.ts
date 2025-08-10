@@ -36,7 +36,7 @@ router.post('/forgot-password', authController.requestPasswordReset);
 router.post('/reset-password', authController.resetPassword);
 
 // ✅ Change Email Routes
-router.post('/change-email-request', verifyToken, authController.requestEmailChangeLink);
+router.post('/request-change-email', verifyToken, authController.requestEmailChangeLink);
 router.get('/verify-email-change', authController.verifyEmailChange);
 
 // ✅ Check Email Routes

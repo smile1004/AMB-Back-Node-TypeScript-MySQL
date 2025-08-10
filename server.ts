@@ -67,7 +67,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(limiter);
 
 
-app.use("/uploads/images", express.static("uploads/images"));
+app.use("/recruit/images", express.static("uploads/images"));
 
 // Routes
 app.use('/api/auth', authRoutes);

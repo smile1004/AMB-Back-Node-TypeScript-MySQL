@@ -18,7 +18,7 @@ const uploadFile = (filePath: string, fileName: string) => {
 
   const params = {
     Bucket: process.env.S3_BUCKET!,
-    Key: `uploaded/${fileName}`, // prefix "migrated/" to organize uploaded files
+    Key: `recruit/${fileName}`, // prefix "migrated/" to organize uploaded files
     Body: fileContent,
     // ACL: 'public-read',
     ContentType: 'image/jpeg', // or dynamically detect via mime-type lib

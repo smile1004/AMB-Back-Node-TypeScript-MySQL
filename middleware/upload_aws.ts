@@ -32,7 +32,7 @@ const upload = multer({
       const extension = file.originalname.split('.').pop(); // get extension like "jpg"
       const fileName = `${uuidv4()}.${extension}`; // hash-based name
       // console.log(`🔑 Generated UUID key: ${fileName}`);
-      const s3Key = `uploaded/${fileName}`; // ✅ save in "uploaded/" folder
+      const s3Key = `recruit/${fileName}`; // ✅ save in "uploaded/" folder
       console.log(`🔑 Generated S3 Key: ${s3Key}`);
       cb(null, s3Key);
     },
