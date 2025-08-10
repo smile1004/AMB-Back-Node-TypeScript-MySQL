@@ -596,7 +596,7 @@ import nodemailer from "nodemailer";
 const requestPasswordReset = async (req: any, res: any, next: any) => {
   try {
     const { email } = req.body;
-    console.log(req.body, email);
+    // console.log(req.body, email);
     // Use model references as any to avoid type errors
     const EmployerModel = db["Employer"] as any;
     const JobSeekerModel = db["JobSeeker"] as any;
@@ -887,7 +887,7 @@ const confirmEmail = async (req: any, res: any, next: any) => {
 //   }
 // };
 
-export const requestEmailChangeLink = async (req, res, next) => {
+export const requestEmailChangeLink = async (req: any, res: any, next: any) => {
   try {
     console.log(req.body);
     const { newEmail } = req.body;
@@ -937,6 +937,10 @@ export const requestEmailChangeLink = async (req, res, next) => {
       });
     }
 
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+    
     const token = jwt.sign(
       { newEmail, userId, role },
       process.env.JWT_SECRET,
@@ -945,6 +949,10 @@ export const requestEmailChangeLink = async (req, res, next) => {
 
     const verificationUrl = `http://api.reuse-tenshoku.com/api/auth/verify-email-change?token=${token}`;
 
+    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT) {
+      throw new Error('SMTP configuration is incomplete');
+    }
+    
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT),
@@ -968,11 +976,15 @@ export const requestEmailChangeLink = async (req, res, next) => {
   }
 };
 
-export const verifyEmailChange = async (req, res, next) => {
+export const verifyEmailChange = async (req: any, res: any, next: any) => {
   try {
     const { token } = req.query;
 
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+    
+    const payload = jwt.verify(token, process.env.JWT_SECRET) as any;
     const { userId, newEmail, role } = payload;
     const Model = role === "employer" ? Employer : JobSeeker;
     const user = await Model.findByPk(userId);

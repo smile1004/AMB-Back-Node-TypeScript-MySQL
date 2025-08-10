@@ -1,9 +1,9 @@
-import { Op } from "sequelize";
-import bcrypt from 'bcryptjs';
+import { Op, Sequelize } from "sequelize";
+import * as bcrypt from 'bcryptjs';
 import db from '../models';
-const {  ApplicationHistory, JobInfo, JobSeeker, Chat, ChatBody, Employer } = db;
+const {  ApplicationHistory, JobInfo, JobSeeker, Chat, ChatBody, Employer, EmploymentType, Feature, JobAnalytic } = db;
 import errorTypes from '../utils/errorTypes';
-const { NotFoundError, BadRequestError, ForbiddenError } = errorTypes;
+const { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } = errorTypes;
 
 
 /**
@@ -109,7 +109,6 @@ const changeEmail = async (req: any, res: any, next: any) => {
     // Verify password
     const isMatch = await bcrypt.compare(password, employer.password);
     if (!isMatch) {
-      // @ts-expect-error TS(2304): Cannot find name 'UnauthorizedError'.
       throw new UnauthorizedError('Invalid password');
     }
     
@@ -151,21 +150,16 @@ const getEmployerJobs = async (req: any, res: any, next: any) => {
     const { status } = req.query;
     
     // Build where condition
-    const whereCondition = {
+    const whereCondition: any = {
       employer_id: id
     };
     
     if (status === 'active') {
-      // @ts-expect-error TS(2339): Property 'deleted' does not exist on type '{ emplo... Remove this comment to see the full error message
       whereCondition.deleted = null;
-      // @ts-expect-error TS(2339): Property 'public_status' does not exist on type '{... Remove this comment to see the full error message
       whereCondition.public_status = 1;
     } else if (status === 'inactive') {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       whereCondition[Op.or] = [
-        // @ts-expect-error TS(2304): Cannot find name 'Op'.
         { deleted: { [Op.not]: null } },
-        // @ts-expect-error TS(2304): Cannot find name 'Op'.
         { public_status: { [Op.not]: 1 } }
       ];
     }
@@ -175,12 +169,10 @@ const getEmployerJobs = async (req: any, res: any, next: any) => {
       where: whereCondition,
       include: [
         {
-          // @ts-expect-error TS(2304): Cannot find name 'EmploymentType'.
           model: EmploymentType,
           as: 'employmentType'
         },
         {
-          // @ts-expect-error TS(2304): Cannot find name 'Feature'.
           model: Feature,
           as: 'features',
           through: { attributes: [] }
@@ -233,11 +225,8 @@ const getEmployerDashboard = async (req: any, res: any, next: any) => {
     const inactiveJobsCount = await JobInfo.count({
       where: {
         employer_id: id,
-        // @ts-expect-error TS(2304): Cannot find name 'Op'.
         [Op.or]: [
-          // @ts-expect-error TS(2304): Cannot find name 'Op'.
           { deleted: { [Op.not]: null } },
-          // @ts-expect-error TS(2304): Cannot find name 'Op'.
           { public_status: { [Op.not]: 1 } }
         ]
       }
@@ -251,7 +240,6 @@ const getEmployerDashboard = async (req: any, res: any, next: any) => {
     
     const applicationsCount = await ApplicationHistory.count({
       where: {
-        // @ts-expect-error TS(2304): Cannot find name 'Op'.
         job_info_id: { [Op.in]: jobIds }
       }
     });
@@ -259,7 +247,6 @@ const getEmployerDashboard = async (req: any, res: any, next: any) => {
     // Get recent applications
     const recentApplications = await ApplicationHistory.findAll({
       where: {
-        // @ts-expect-error TS(2304): Cannot find name 'Op'.
         job_info_id: { [Op.in]: jobIds }
       },
       include: [
@@ -269,7 +256,6 @@ const getEmployerDashboard = async (req: any, res: any, next: any) => {
           attributes: ['id', 'job_title']
         },
         {
-          // @ts-expect-error TS(2304): Cannot find name 'JobSeeker'.
           model: JobSeeker,
           as: 'jobSeeker',
           attributes: ['id', 'name']
@@ -285,25 +271,20 @@ const getEmployerDashboard = async (req: any, res: any, next: any) => {
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     
     // Aggregate job analytics
-    // @ts-expect-error TS(2304): Cannot find name 'JobAnalytic'.
     const jobAnalytics = await JobAnalytic.findAll({
       attributes: [
         'job_info_id',
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('SUM', sequelize.col('search_count')), 'total_views'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('SUM', sequelize.col('recruits_count')), 'total_clicks']
+        [Sequelize.fn('SUM', Sequelize.col('search_count')), 'total_views'],
+        [Sequelize.fn('SUM', Sequelize.col('recruits_count')), 'total_clicks']
       ],
       where: {
-        // @ts-expect-error TS(2304): Cannot find name 'Op'.
         job_info_id: { [Op.in]: jobIds },
         year,
         month,
         deleted: null
       },
       group: ['job_info_id'],
-      // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-      order: [[sequelize.literal('total_views'), 'DESC']],
+      order: [[Sequelize.literal('total_views'), 'DESC']],
       limit: 10,
       raw: true
     });
@@ -312,7 +293,6 @@ const getEmployerDashboard = async (req: any, res: any, next: any) => {
     const jobDetails = await JobInfo.findAll({
       attributes: ['id', 'job_title'],
       where: {
-        // @ts-expect-error TS(2304): Cannot find name 'Op'.
         id: { [Op.in]: jobAnalytics.map((analytics: any) => analytics.job_info_id) }
       },
       raw: true
@@ -360,12 +340,10 @@ const getAllEmployers = async (req: any, res: any, next: any) => {
     const offset = (page - 1) * limit;
 
     // Build where condition
-    const whereCondition = { deleted: null };
-    // @ts-expect-error
+    const whereCondition: any = { deleted: null };
     if (prefectures) whereCondition.prefectures = prefectures;
     // Add search term filter
     if (searchTerm) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       whereCondition[Op.or] = [
         { clinic_name: { [Op.like]: `%${searchTerm}%` } },
         { clinic_name_kana: { [Op.like]: `%${searchTerm}%` } },
@@ -374,7 +352,6 @@ const getAllEmployers = async (req: any, res: any, next: any) => {
         { business: { [Op.like]: `%${searchTerm}%` } },
       ];
     }
-
 
     const { count, rows: employers } = await Employer.findAndCountAll({
       where: whereCondition,

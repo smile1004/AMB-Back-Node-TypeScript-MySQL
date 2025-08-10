@@ -5,6 +5,7 @@ import AWS from 'aws-sdk';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import { v4 as uuidv4 } from 'uuid';
+import { Request } from 'express';
 
 // 🚀 Initialize S3
 const s3 = new AWS.S3({
@@ -20,15 +21,17 @@ console.log(`📦 Using S3 Bucket: ${bucketName}`);
 // 🛠️ Setup multer + S3 storage
 const upload = multer({
   storage: multerS3({
-    s3,
+    s3: s3 as any,
     bucket: bucketName,
     // acl: 'public-read',
-    contentType: multerS3.AUTO_CONTENT_TYPE, // ✅ Fix: sets correct Content-Type (e.g. image/png)
-    metadata: (req, file, cb) => {
+    contentType: (req: Request, file: Express.Multer.File, cb: (error: Error | null, contentType: string) => void) => {
+      cb(null, file.mimetype);
+    },
+    metadata: (req: Request, file: Express.Multer.File, cb: (error: Error | null, metadata: any) => void) => {
       // console.log(`📤 Starting upload for: ${file.originalname}`);
       cb(null, { fieldName: file.fieldname });
     },
-    key: (req, file, cb) => {
+    key: (req: Request, file: Express.Multer.File, cb: (error: Error | null, key: string) => void) => {
       const extension = file.originalname.split('.').pop(); // get extension like "jpg"
       const fileName = `${uuidv4()}.${extension}`; // hash-based name
       // console.log(`🔑 Generated UUID key: ${fileName}`);
@@ -40,11 +43,11 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.mimetype)) {
       console.log(`❌ File rejected: ${file.originalname} (type: ${file.mimetype})`);
-      return cb(new Error('Only image files are allowed'), false);
+      return cb(new Error('Only image files are allowed'));
     }
     console.log(`✅ File accepted: ${file.originalname}`);
     cb(null, true);

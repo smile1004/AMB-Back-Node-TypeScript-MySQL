@@ -1,9 +1,9 @@
 "use strict";
 
-import fs from "fs";
-import path from "path";
+import * as fs from "fs";
+import * as path from "path";
 import { Sequelize, DataTypes, ModelStatic, Options } from "sequelize";
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 dotenv.config();
 import dbConfig from "../config/database";
 
@@ -43,13 +43,7 @@ if (
 }
 
 // Load all models dynamically
-interface DB {
-  [key: string]: ModelStatic<any> | Sequelize;
-  sequelize: Sequelize;
-  Sequelize: typeof Sequelize;
-}
-
-const db = {} as DB;
+const db: any = {};
 
 fs.readdirSync(__dirname)
   .filter((file) => {
@@ -66,7 +60,9 @@ fs.readdirSync(__dirname)
     const model = modelImport.default
       ? modelImport.default(sequelize, DataTypes)
       : modelImport(sequelize, DataTypes);
-    db[model.name] = model;
+    if (model && model.name) {
+      db[model.name] = model;
+    }
   });
 
 // Set up model associations
@@ -78,6 +74,7 @@ Object.keys(db).forEach((modelName) => {
   }
 });
 
+// Add sequelize properties after models are loaded
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 

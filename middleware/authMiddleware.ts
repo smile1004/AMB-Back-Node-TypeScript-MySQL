@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import errorTypes from '../utils/errorTypes';
 const { NotFoundError, BadRequestError, ForbiddenError, UnauthorizedError } = errorTypes;
 import db from '../models';
-const { Admin, Employer, JobSeeker } = db;
+const { Admin, Employer, JobSeeker, JobInfo } = db;
 
 
 /**
@@ -17,16 +17,17 @@ const verifyToken = (req: any, res: any, next: any) => {
 
     const token = authHeader.split(" ")[1];
 
-    // @ts-expect-error TS(2769): No overload matches this call.
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
-    // @ts-expect-error TS(2571): Object is of type 'unknown'.
-    if (error.name === "JsonWebTokenError") {
+    if ((error as any).name === "JsonWebTokenError") {
       next(new UnauthorizedError("Invalid token"));
-      // @ts-expect-error TS(2571): Object is of type 'unknown'.
-    } else if (error.name === "TokenExpiredError") {
+    } else if ((error as any).name === "TokenExpiredError") {
       next(new UnauthorizedError("Token expired"));
     } else {
       next(error);
@@ -142,11 +143,9 @@ const isJobOwner = async (req: any, res: any, next: any) => {
     const { id } = req.params;
     const { id: employerId } = req.user;
 
-    // @ts-expect-error TS(2304): Cannot find name 'models'.
-    const job = await models.JobInfo.findByPk(id);
+    const job = await JobInfo.findByPk(id);
 
     if (!job) {
-      // @ts-expect-error TS(2304): Cannot find name 'NotFoundError'.
       throw new NotFoundError("Job not found");
     }
 

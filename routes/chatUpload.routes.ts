@@ -6,7 +6,10 @@ const { verifyToken, isEmployer, isJobSeeker, isAdmin } = authMiddleware;
 const router = express.Router();
 
 router.post('/file', verifyToken, uploadChatFile.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+  if (!req.file) {
+    res.status(400).json({ success: false, message: 'No file uploaded' });
+    return;
+  }
 
   const filePath = (req.file as any).location;
   const fileName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');

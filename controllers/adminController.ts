@@ -1,7 +1,7 @@
-import { Op } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 import bcrypt from 'bcryptjs';
 import db from "../models";
-const { Admin, Employer, JobSeeker, JobInfo, ApplicationHistory, Chat, JobAnalytic, sequelize } = db;
+const { Admin, Employer, JobSeeker, JobInfo, ApplicationHistory, Chat, JobAnalytic } = db;
 import errorTypes from '../utils/errorTypes';
 const { NotFoundError, BadRequestError } = errorTypes;
 
@@ -104,10 +104,8 @@ const getDashboardStats = async (req: any, res: any, next: any) => {
     const jobViews = await JobAnalytic.findAll({
       attributes: [
         'day',
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('SUM', sequelize.col('search_count')), 'total_views'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('SUM', sequelize.col('recruits_count')), 'total_clicks']
+        [Sequelize.fn('SUM', Sequelize.col('search_count')), 'total_views'],
+        [Sequelize.fn('SUM', Sequelize.col('recruits_count')), 'total_clicks']
       ],
       where: {
         year: yearStr,
@@ -529,12 +527,9 @@ const getAnalytics = async (req: any, res: any, next: any) => {
     const jobAnalytics = await JobAnalytic.findAll({
       attributes: [
         ...groupBy,
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('SUM', sequelize.col('search_count')), 'total_views'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('SUM', sequelize.col('recruits_count')), 'total_clicks'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('COUNT', sequelize.col('job_info_id')), 'job_count']
+        [Sequelize.fn('SUM', Sequelize.col('search_count')), 'total_views'],
+        [Sequelize.fn('SUM', Sequelize.col('recruits_count')), 'total_clicks'],
+        [Sequelize.fn('COUNT', Sequelize.col('job_info_id')), 'job_count']
       ],
       where: whereCondition,
       group: groupBy,
@@ -555,68 +550,56 @@ const getAnalytics = async (req: any, res: any, next: any) => {
     // Query for employers
     const employerRegistrations = await Employer.findAll({
       attributes: [
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('DATE_FORMAT', sequelize.col('created'), dateFormat), 'date'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        [Sequelize.fn('DATE_FORMAT', Sequelize.col('created'), dateFormat), 'date'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
       ],
       where: {
         created: { [Op.gte]: getStartDateByPeriod(period) }
       },
       group: ['date'],
-      // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-      order: [[sequelize.literal('date'), 'ASC']],
+      order: [[Sequelize.literal('date'), 'ASC']],
       raw: true
     });
     
     // Query for job seekers
     const jobSeekerRegistrations = await JobSeeker.findAll({
       attributes: [
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('DATE_FORMAT', sequelize.col('created'), dateFormat), 'date'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        [Sequelize.fn('DATE_FORMAT', Sequelize.col('created'), dateFormat), 'date'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
       ],
       where: {
         created: { [Op.gte]: getStartDateByPeriod(period) }
       },
       group: ['date'],
-      // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-      order: [[sequelize.literal('date'), 'ASC']],
+      order: [[Sequelize.literal('date'), 'ASC']],
       raw: true
     });
     
     // Query for job postings
     const jobPostings = await JobInfo.findAll({
       attributes: [
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('DATE_FORMAT', sequelize.col('created'), dateFormat), 'date'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        [Sequelize.fn('DATE_FORMAT', Sequelize.col('created'), dateFormat), 'date'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
       ],
       where: {
         created: { [Op.gte]: getStartDateByPeriod(period) }
       },
       group: ['date'],
-      // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-      order: [[sequelize.literal('date'), 'ASC']],
+      order: [[Sequelize.literal('date'), 'ASC']],
       raw: true
     });
     
     // Query for applications
     const applications = await ApplicationHistory.findAll({
       attributes: [
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('DATE_FORMAT', sequelize.col('created'), dateFormat), 'date'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        [Sequelize.fn('DATE_FORMAT', Sequelize.col('created'), dateFormat), 'date'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
       ],
       where: {
         created: { [Op.gte]: getStartDateByPeriod(period) }
       },
       group: ['date'],
-      // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
-      order: [[sequelize.literal('date'), 'ASC']],
+      order: [[Sequelize.literal('date'), 'ASC']],
       raw: true
     });
     

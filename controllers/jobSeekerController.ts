@@ -83,7 +83,6 @@ const updateProfile = async (req: any, res: any, next: any) => {
     }
 
     // Start transaction
-    // @ts-expect-error TS(2304): Cannot find name 'models'.
     // const transaction = await models.sequelize.transaction();
 
     try {

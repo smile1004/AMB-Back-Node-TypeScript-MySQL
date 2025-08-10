@@ -33,7 +33,7 @@ const getAllRecruitingCriteriasPagination = async (req: any, res: any, next: any
 
     // Calculate pagination
     const offset = (page - 1) * limit;
-    const whereCondition = {};
+    const whereCondition: any = {};
     // Search Term
     if (searchTerm) {
       whereCondition[Op.or] = [

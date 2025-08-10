@@ -182,8 +182,8 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     const prefectureIds = typeof prefectures === "string" ? JSON.parse(prefectures) : prefectures || [];
 
     const allFeatureIds = featureIds.map(Number);
-    const orPrefectureFeatureIds = prefectureIds.map(Number).filter(id => id >= 35 && id <= 89);
-    const andFeatureIds = allFeatureIds.filter(id => !orPrefectureFeatureIds.includes(id));
+    const orPrefectureFeatureIds = prefectureIds.map(Number).filter((id: number) => id >= 35 && id <= 89);
+    const andFeatureIds = allFeatureIds.filter((id: number) => !orPrefectureFeatureIds.includes(id));
 
     if (andFeatureIds.length > 0 || orPrefectureFeatureIds.length > 0) {
       if (andFeatureIds.length > 0) {
@@ -238,7 +238,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     });
 
     // Calculate recommend_score for paginated jobs
-    const jobs = allJobs.map(job => {
+    const jobs = allJobs.map((job: any) => {
       const search = Number(job.get("search_count") || 0);
       const recruits = Number(job.get("recruits_count") || 0);
       const application_count = Number(job.get("application_count") || 0);
@@ -268,14 +268,14 @@ const getAllJobs = async (req: any, res: any, next: any) => {
     });
 
     const recommendedJobs = allJobsForRecommend
-      .map(job => {
+      .map((job: any) => {
         const search = Number(job.get("search_count") || 0);
         const recruits = Number(job.get("recruits_count") || 0);
         const application_count = Number(job.get("application_count") || 0);
         const recommend_score = search * 0.3 + recruits * 0.3 + application_count * 0.4;
         return { ...job.get(), recommend_score };
       })
-      .sort((a, b) => b.recommend_score - a.recommend_score)
+      .sort((a: any, b: any) => b.recommend_score - a.recommend_score)
       .slice(0, 5);
 
     res.status(200).json({
@@ -488,7 +488,7 @@ const createJob = async (req: any, res: any, next: any) => {
       where: { id: features },
     });
 
-    const validFeatureIds = existingFeatures.map((feature) => feature.id);
+    const validFeatureIds = existingFeatures.map((feature: any) => feature.id);
 
     if (validFeatureIds.length !== features.length) {
       throw new Error("Some features provided do not exist in the database.");
@@ -496,7 +496,7 @@ const createJob = async (req: any, res: any, next: any) => {
 
     // Bulk insert job-feature associations
     if (validFeatureIds.length > 0) {
-      const featuresToInsert = validFeatureIds.map((featureID) => ({
+      const featuresToInsert = validFeatureIds.map((featureID: any) => ({
         job_info_id: job.id,
         feature_id: featureID,
       }));
@@ -678,7 +678,6 @@ const updateJob = async (req: any, res: any, next: any) => {
 
     // Check if the employer owns the job
     if (job.employer_id != employer_id) {
-      // @ts-expect-error TS(2304): Cannot find name 'ForbiddenError'.
       throw new ForbiddenError("You do not have permission to update this job");
     }
 
@@ -697,7 +696,7 @@ const updateJob = async (req: any, res: any, next: any) => {
       where: { id: features },
     });
 
-    const validFeatureIds = existingFeatures.map((feature) => feature.id);
+    const validFeatureIds = existingFeatures.map((feature: any) => feature.id);
 
     if (validFeatureIds.length !== features.length) {
       throw new Error("Some features provided do not exist in the database.");
@@ -708,7 +707,7 @@ const updateJob = async (req: any, res: any, next: any) => {
       })
       // Bulk insert job-feature associations
       if (validFeatureIds.length > 0) {
-        const featuresToInsert = validFeatureIds.map((featureID) => ({
+        const featuresToInsert = validFeatureIds.map((featureID: any) => ({
           job_info_id: job.id,
           feature_id: featureID,
         }));
@@ -726,7 +725,6 @@ const updateJob = async (req: any, res: any, next: any) => {
     }
     if (recruitingCriterias) {
       // Remove existing criteria first
-      // @ts-expect-error TS(2304): Cannot find name 'models'.
       await JobInfosRecruitingCriteria.destroy({
         where: { job_info_id: job.id },
       });

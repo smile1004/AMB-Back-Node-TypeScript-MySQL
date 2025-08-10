@@ -1,10 +1,13 @@
 import express from 'express';
 const router = express.Router();
 
-import { JobAnalytic } from '../models';
+import db from '../models';
+const { JobAnalytic, sequelize } = db;
 import authMiddleware from '../middleware/authMiddleware';
 const { verifyToken, isAdmin, isEmployer } = authMiddleware;
 import logger from '../utils/logger';
+import errorTypes from '../utils/errorTypes';
+const { BadRequestError } = errorTypes;
 
 /**
  * Get analytics for a specific job
@@ -36,7 +39,6 @@ router.get('/job/:id', verifyToken, isEmployer, async (req, res, next) => {
       groupBy = ['year'];
       whereCondition = { job_info_id: jobId };
     } else {
-      // @ts-expect-error TS(2304): Cannot find name 'BadRequestError'.
       throw new BadRequestError('Invalid period. Use "day", "month", or "year"');
     }
     
@@ -44,9 +46,7 @@ router.get('/job/:id', verifyToken, isEmployer, async (req, res, next) => {
     const analytics = await JobAnalytic.findAll({
       attributes: [
         ...groupBy,
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
         [sequelize.fn('SUM', sequelize.col('search_count')), 'total_views'],
-        // @ts-expect-error TS(2304): Cannot find name 'sequelize'.
         [sequelize.fn('SUM', sequelize.col('recruits_count')), 'total_clicks']
       ],
       where: whereCondition,

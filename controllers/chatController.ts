@@ -2,12 +2,12 @@
 import { Request, Response, NextFunction } from 'express';
 import db from '../models';
 import { Op } from 'sequelize';
-import { is } from 'cheerio/dist/commonjs/api/traversing';
+import { AuthenticatedRequest } from '../types';
 
 const { Chat, ChatBody, JobInfo, JobSeeker, Employer, ImagePath } = db;
 
 // Get chat list for current user (employer or jobseeker)
-const getUserChats = async (req: Request, res: Response, next: NextFunction) => {
+const getUserChats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { user } = req;
     const isEmployer = user.role === 'employer';
@@ -108,7 +108,7 @@ const getUserChats = async (req: Request, res: Response, next: NextFunction) => 
 
 
 // Mark messages as read
-const markMessagesRead = async (req: Request, res: Response, next: NextFunction) => {
+const markMessagesRead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const chatId = parseInt(req.params.chat_id);
     const { user } = req;
@@ -132,7 +132,7 @@ const markMessagesRead = async (req: Request, res: Response, next: NextFunction)
 };
 
 // Get all messages for one chat room
-const getChatMessages = async (req: Request, res: Response, next: NextFunction) => {
+const getChatMessages = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const chat_id = parseInt(req.params.chat_id);
     const messages = await ChatBody.findAll({
@@ -147,7 +147,7 @@ const getChatMessages = async (req: Request, res: Response, next: NextFunction) 
 
 // controllers/chatController.ts
 
-const editMessage = async (req: Request, res: Response, next: NextFunction) => {
+const editMessage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { body } = req.body;
@@ -173,7 +173,7 @@ const editMessage = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const deleteMessage = async (req: Request, res: Response, next: NextFunction) => {
+const deleteMessage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { user } = req;
