@@ -96,6 +96,31 @@ app.use('/api/chat-upload', chatUploadRoutes);
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Performance test endpoint
+app.get('/api/performance-test', async (_req: Request, res: Response) => {
+  const startTime = Date.now();
+  try {
+    // Test database connection
+    await db.sequelize.authenticate();
+    const dbTime = Date.now() - startTime;
+    
+    res.status(200).json({ 
+      status: 'ok', 
+      database: 'connected',
+      connectionTime: `${dbTime}ms`,
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error', 
+      database: 'disconnected',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 // Error middleware
 app.use(errorHandler);
 

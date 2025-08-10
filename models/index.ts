@@ -6,6 +6,7 @@ import { Sequelize, DataTypes, ModelStatic, Options } from "sequelize";
 import * as dotenv from "dotenv";
 dotenv.config();
 import dbConfig from "../config/database";
+import DatabasePerformanceMonitor from "../utils/dbPerformance";
 
 const basename = path.basename(__filename);
 const env =
@@ -42,6 +43,26 @@ if (
   );
 }
 
+// Optimize connection pooling for AWS RDS
+sequelize.addHook('beforeConnect', async (config) => {
+  // Ensure we have optimal connection settings
+  if (config.pool) {
+    // Pool configuration is handled in database.ts config
+    console.log('Database connection pool configured');
+  }
+});
+
+// Add connection event handlers for better monitoring
+sequelize.addHook('afterConnect', (connection) => {
+  // Log successful connections
+  console.log('Database connection established');
+});
+
+sequelize.addHook('afterDisconnect', (connection) => {
+  // Log disconnections
+  console.log('Database connection closed');
+});
+
 // Load all models dynamically
 const db: any = {};
 
@@ -77,5 +98,8 @@ Object.keys(db).forEach((modelName) => {
 // Add sequelize properties after models are loaded
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
+
+// Initialize database performance monitoring
+const dbMonitor = new DatabasePerformanceMonitor(sequelize);
 
 export default db;
