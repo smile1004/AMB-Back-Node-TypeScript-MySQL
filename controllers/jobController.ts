@@ -109,10 +109,10 @@ const getAllJobs = async (req: any, res: any, next: any) => {
 
     // Add expiry date filtering - exclude expired jobs
     const currentDate = new Date();
-    const currentDateString = currentDate.getFullYear().toString() + 
-                             String(currentDate.getMonth() + 1).padStart(2, '0') + 
-                             String(currentDate.getDate()).padStart(2, '0');
-    
+    const currentDateString = currentDate.getFullYear().toString() +
+      String(currentDate.getMonth() + 1).padStart(2, '0') +
+      String(currentDate.getDate()).padStart(2, '0');
+
     const expiryDateCondition = {
       [Op.or]: [
         { clinic_public_date_end: null },
@@ -138,13 +138,13 @@ const getAllJobs = async (req: any, res: any, next: any) => {
           Sequelize.where(Sequelize.col("employer.closest_station"), { [Op.like]: `%${searchTerm}%` }),
         ]
       };
-      
+
       if (prefectureId) {
         searchCondition[Op.or].push(
           Sequelize.where(Sequelize.col("employer.prefectures"), { [Op.eq]: prefectureId })
         );
       }
-      
+
       whereCondition[Op.and].push(searchCondition);
     }
 
@@ -216,7 +216,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
         include: includeOptions,
         distinct: true,
       }),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Count query timeout after 10s')), 10000)
       )
     ]);
@@ -257,13 +257,13 @@ const getAllJobs = async (req: any, res: any, next: any) => {
           ],
         },
       }),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Jobs query timeout after 15s')), 15000)
       )
     ]);
     logger.info(`Jobs query took: ${Date.now() - jobsStartTime}ms`);
 
-    // OPTIMIZATION: Calculate scores in memory instead of additional queries
+    // OPTIMIZATION: Calculate scores in memory for current page jobs
     const jobs = allJobs.map((job: any) => {
       const search = Number(job.get("search_count") || 0);
       const recruits = Number(job.get("recruits_count") || 0);
@@ -279,10 +279,83 @@ const getAllJobs = async (req: any, res: any, next: any) => {
       };
     });
 
-    // OPTIMIZATION: Get top 5 recommended jobs from current page instead of full dataset
-    const recommendedJobs = jobs
-      .sort((a: any, b: any) => (b.recommend_score || 0) - (a.recommend_score || 0))
-      .slice(0, 5);
+    // FIX: Get top 5 recommended jobs from entire dataset, not just current page
+    const recommendedJobsStartTime = Date.now();
+    const topRecommendedJobs = await Promise.race([
+      JobInfo.findAll({
+        where: whereCondition,
+        include: [
+          {
+            model: Employer,
+            as: "employer",
+            required: true,
+            attributes: ["id", "clinic_name", "prefectures", "city", "closest_station"],
+          },
+          { model: EmploymentType, as: "employmentType" },
+          {
+            model: ImagePath,
+            as: 'jobThumbnails',
+            where: { posting_category: 11 },
+            attributes: ["entity_path", "image_name"],
+            required: false,
+          },
+          {
+            model: Feature,
+            as: "features",
+            through: { attributes: [] },
+            required: true,
+          },
+        ],
+        attributes: {
+          include: [
+            [Sequelize.literal(`(
+              SELECT COALESCE(SUM(ja.search_count), 0) 
+              FROM job_analytics ja 
+              WHERE ja.job_info_id = JobInfo.id
+            )`), 'search_count'],
+            [Sequelize.literal(`(
+              SELECT COALESCE(SUM(ja.recruits_count), 0) 
+              FROM job_analytics ja 
+              WHERE ja.job_info_id = JobInfo.id
+            )`), 'recruits_count'],
+            [Sequelize.literal(`(
+              SELECT COUNT(ah.id) 
+              FROM application_histories ah 
+              WHERE ah.job_info_id = JobInfo.id
+            )`), 'application_count'],
+            [Sequelize.literal(`(
+              SELECT COUNT(fj.id) 
+              FROM favorite_jobs fj 
+              WHERE fj.job_info_id = JobInfo.id
+            )`), 'favourite_count'],
+          ],
+        },
+        order: [
+          [Sequelize.literal('(search_count * 0.3) + (recruits_count * 0.3) + (application_count * 0.4)'), 'DESC'],
+        ],
+        limit: 5,
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Recommended jobs query timeout after 10s')), 10000)
+      )
+    ]);
+    logger.info(`Recommended jobs query took: ${Date.now() - recommendedJobsStartTime}ms`);
+
+    // Calculate recommend_score for recommended jobs
+    const recommendedJobs = topRecommendedJobs.map((job: any) => {
+      const search = Number(job.get("search_count") || 0);
+      const recruits = Number(job.get("recruits_count") || 0);
+      const application_count = Number(job.get("application_count") || 0);
+      const recommend_score = search * 0.3 + recruits * 0.3 + application_count * 0.4;
+
+      return {
+        ...job.get(),
+        search_count: search,
+        recruits_count: recruits,
+        application_count,
+        recommend_score,
+      };
+    });
 
     const totalTime = Date.now() - startTime;
     logger.info(`getAllJobs total execution time: ${totalTime}ms`);
@@ -300,7 +373,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
         },
         performance: {
           executionTime: totalTime,
-          queriesExecuted: 2, // Reduced from 3+ queries
+          queriesExecuted: 3, // Count query + Jobs query + Recommended jobs query
         }
       },
     });
@@ -312,7 +385,7 @@ const getAllJobs = async (req: any, res: any, next: any) => {
         // Use bulk update for better performance
         await JobAnalytic.bulkCreate(
           jobIds.map((id: any) => ({ job_info_id: id, search_count: 1, recruits_count: 0 })),
-          { 
+          {
             updateOnDuplicate: ['search_count'],
             fields: ['job_info_id', 'search_count', 'recruits_count']
           }
